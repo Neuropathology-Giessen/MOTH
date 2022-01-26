@@ -14,7 +14,7 @@ RUN pip install openslide-python
 RUN pip install opencv-python
 RUN pip install paquo
 
-WORKDIR /qupath-interaction
+WORKDIR /gbm_qupath_tiles
 
 
 COPY . .
