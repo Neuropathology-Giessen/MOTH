@@ -127,3 +127,12 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# QuPath installation
+QuPath-0.3.1-Linux
+
+# data
+Qupath_data
+
+# docker
+.devcontainer

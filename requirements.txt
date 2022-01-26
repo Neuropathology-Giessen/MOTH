@@ -1,0 +1,5 @@
+openslide-python
+paquo
+numpy
+shapely
+geopandas
