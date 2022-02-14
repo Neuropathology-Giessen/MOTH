@@ -1,12 +1,11 @@
 from __future__ import annotations
-from typing import Sequence
 from paquo.projects import QuPathProject
 
 import numpy as np
 from shapely.geometry import Polygon
 from openslide import OpenSlide
 import PIL
-
+import cv2
 
 import os
 
@@ -28,6 +27,10 @@ class QuPathOperations(QuPathProject):
 
         """
         super().__init__(path, mode)
+
+
+    def set_path_classes(self, path_classes):
+        self.path_classes = path_classes
 
 
     def get_tile(self, img_id, location_x, location_y, size):
@@ -91,3 +94,60 @@ class QuPathOperations(QuPathProject):
                 tile_intersections.append((annot_class, intersection))
 
         return(tile_intersections)
+
+
+    def save_tile(self, filename: str, img, label_img):
+        ''' save tile with annotations in QuPathProject
+
+        Parameters:
+
+            filename (str): name to save tile in project
+            img:            tile to save
+            label_img:      annotations of the tile
+        '''
+        slides_path = '{}/slides/'.format(os.path.split(self.path)[0])
+        class_dict = {}
+        for i, ann in enumerate(self.path_classes):
+            class_dict[i] = ann
+        if len(os.listdir(os.path.split(self.path)[0])) == 0:
+            self.save()
+            os.mkdir(slides_path)
+        img_path = '{}/slides/{}.tif'.format(os.path.split(self.path)[0], filename)
+        img.save(img_path)
+        slide = self.add_image(img_path)
+
+        poly_annot_list = self.label_img_to_polys(label_img)
+        for poly, annot in poly_annot_list:
+            slide.hierarchy.add_annotation(poly, path_class= class_dict[annot])
+
+
+    @classmethod
+    def label_img_to_polys(cls, label_img):
+        ''' convert label mask to list of Polygons
+
+        Parameters:
+
+            label_img: mask [H, W] with values between 0 and highest label class
+
+        Returns:
+
+            poly_labels: list of Polygon and label tuple [(polygon, label), ...]
+        '''
+        label_img = label_img.astype(np.uint8)
+        poly_labels = []
+        for i in range(1, np.max(label_img)+1):
+            label_img_copy = label_img.copy()
+            it_img = np.where(label_img_copy == i, 1, 0).astype(np.uint8)
+            contours, _ = cv2.findContours(it_img, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
+            if len(contours) == 0:
+                continue
+            contours = map(np.squeeze, contours)
+            polygons = map(Polygon, contours)
+            polygons = map(lambda x: x.simplify(0), polygons)
+            poly_label = map(lambda poly: (poly, i), polygons)
+            
+            poly_labels.extend(
+                list(poly_label)
+            )
+            
+        return poly_labels
