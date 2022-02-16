@@ -1,10 +1,9 @@
-from __future__ import annotations
 from paquo.projects import QuPathProject
 
 import numpy as np
 from shapely.geometry import Polygon
+import shapely
 from openslide import OpenSlide
-import PIL
 import cv2
 
 import os
@@ -27,13 +26,24 @@ class QuPathOperations(QuPathProject):
 
         """
         super().__init__(path, mode)
+        self._class_dict = {}
+        for i, ann in enumerate(self.path_classes):
+            self._class_dict[i] = ann
+        self._inverse_class_dict = {value.id: key for key, value in self._class_dict.items()}
 
 
-    def set_path_classes(self, path_classes):
+    def update_path_classes(self, path_classes):
+        ''' update the annotation classes and annotation dictionaries of the project
+        
+        Parameters:
+            path_classes: annotation classes to set'''
         self.path_classes = path_classes
+        for i, ann in enumerate(self.path_classes):
+            self._class_dict[i] = ann
+        self._inverse_class_dict = {value.id: key for key, value in self._class_dict.items()}
 
 
-    def get_tile(self, img_id, location_x, location_y, size):
+    def get_tile(self, img_dir, img_id, location_x, location_y, size):
         ''' get tile between (x|y) and (x + size| y + size)
 
         Parameters:
@@ -44,11 +54,10 @@ class QuPathOperations(QuPathProject):
             size:   size of tile (tile shape = (size, size))       
 
         Returns:
-
             tile:   tile image 
         '''
         slide = self.images[img_id]
-        with OpenSlide(os.path.join("Qupath_data", "Slides zum Training", slide.image_name)) as slide_data:
+        with OpenSlide(os.path.join(img_dir, slide.image_name)) as slide_data:
             tile = slide_data.read_region((location_x, location_y), 0, (size, size))
         return(tile)
 
@@ -64,7 +73,6 @@ class QuPathOperations(QuPathProject):
             size:   size of tile (tile shape = (size, size))       
 
         Returns:
-
             tile_intersections: list of annotations in tile
         '''
         slide = self.images[img_id]
@@ -93,7 +101,40 @@ class QuPathOperations(QuPathProject):
             if not intersection.is_empty:
                 tile_intersections.append((annot_class, intersection))
 
-        return(tile_intersections)
+        return tile_intersections
+
+    
+    def get_tile_annot_mask(self, img_id, location_x, location_y, size):
+        ''' get tile annotations mask between (x|y) and (x + size| y + size)
+
+        Parameters:
+
+            img_id: id of image to operate
+            location_x: x coordinate for tile begin
+            location_y: y coordinate for tile begin
+            size:   size of tile (tile shape = (size, size))       
+
+        Returns:
+            annot_mask: mask [size, size] with an annotation class for each pixel
+        '''
+        tile_intersections = self.get_tile_annot(img_id, location_x, location_y, size)
+        # sort intersections descending by area. Now we can not accidentally overwrite polys with other poly holes
+        sorted_intersections = sorted(tile_intersections, key = lambda tup: tup[1].area, reverse=True)
+
+        annot_mask = np.zeros((size, size))
+        for inter_class, intersection in sorted_intersections:
+            class_num = self._inverse_class_dict[inter_class]
+
+            trans_inter = shapely.affinity.translate(intersection, location_x * -1, location_y * -1)
+
+            int_coords = lambda coords: np.array(coords).round().astype(np.int32)
+            exteriors = [int_coords(trans_inter.exterior.coords)]
+            interiors = [int_coords(poly) for poly in trans_inter.interiors]
+            
+            cv2.fillPoly(annot_mask, exteriors, class_num)
+            cv2.fillPoly(annot_mask, interiors, 0)
+        
+        return annot_mask
 
 
     def save_tile(self, filename: str, img, label_img):
@@ -106,9 +147,7 @@ class QuPathOperations(QuPathProject):
             label_img:      annotations of the tile
         '''
         slides_path = '{}/slides/'.format(os.path.split(self.path)[0])
-        class_dict = {}
-        for i, ann in enumerate(self.path_classes):
-            class_dict[i] = ann
+        # check if QuPath project is initilazed, if not save project before filling folder
         if len(os.listdir(os.path.split(self.path)[0])) == 0:
             self.save()
             os.mkdir(slides_path)
@@ -118,7 +157,7 @@ class QuPathOperations(QuPathProject):
 
         poly_annot_list = self.label_img_to_polys(label_img)
         for poly, annot in poly_annot_list:
-            slide.hierarchy.add_annotation(poly, path_class= class_dict[annot])
+            slide.hierarchy.add_annotation(poly, path_class= self._class_dict[annot])
 
 
     @classmethod
@@ -126,11 +165,9 @@ class QuPathOperations(QuPathProject):
         ''' convert label mask to list of Polygons
 
         Parameters:
-
             label_img: mask [H, W] with values between 0 and highest label class
 
         Returns:
-
             poly_labels: list of Polygon and label tuple [(polygon, label), ...]
         '''
         label_img = label_img.astype(np.uint8)
