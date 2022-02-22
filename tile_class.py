@@ -48,6 +48,7 @@ class QuPathOperations(QuPathProject):
 
         Parameters:
 
+            img_dir: directory containing the image
             img_id: id of image to operate
             location_x: x coordinate for tile begin
             location_y: y coordinate for tile begin
@@ -119,7 +120,7 @@ class QuPathOperations(QuPathProject):
         '''
         tile_intersections = self.get_tile_annot(img_id, location_x, location_y, size)
         # sort intersections descending by area. Now we can not accidentally overwrite polys with other poly holes
-        sorted_intersections = sorted(tile_intersections, key = lambda tup: tup[1].area, reverse=True)
+        sorted_intersections = sorted(tile_intersections, key = lambda tup: tup[1].exterior.area, reverse=True)
 
         annot_mask = np.zeros((size, size))
         for inter_class, intersection in sorted_intersections:
