@@ -1,7 +1,7 @@
 from paquo.projects import QuPathProject
 
 import numpy as np
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, MultiPolygon
 import shapely
 from openslide import OpenSlide
 import cv2
@@ -99,8 +99,13 @@ class QuPathOperations(QuPathProject):
                     polygon_annot = Polygon(poly_data_squeezed[0][0], poly_data_squeezed[1:]) if len(poly_data_squeezed) > 1 else Polygon(poly_data_squeezed[0][0])
             
             intersection = polygon_annot.intersection(polygon_tile)
+
             if not intersection.is_empty:
-                tile_intersections.append((annot_class, intersection))
+                if isinstance(intersection, MultiPolygon):
+                    for inter in intersection:
+                        tile_intersections.append((annot_class, inter))
+                else:
+                    tile_intersections.append((annot_class, intersection))
 
         return tile_intersections
 
