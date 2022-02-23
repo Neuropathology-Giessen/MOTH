@@ -102,7 +102,7 @@ class QuPathOperations(QuPathProject):
 
             if not intersection.is_empty:
                 if isinstance(intersection, MultiPolygon):
-                    for inter in intersection:
+                    for inter in intersection.geoms:
                         tile_intersections.append((annot_class, inter))
                 else:
                     tile_intersections.append((annot_class, intersection))
