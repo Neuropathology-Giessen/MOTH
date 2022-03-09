@@ -2,6 +2,7 @@ from paquo.projects import QuPathProject
 
 import numpy as np
 from shapely.geometry import Polygon, MultiPolygon
+from shapely.strtree import STRtree
 import shapely
 from openslide import OpenSlide
 import cv2
@@ -83,10 +84,11 @@ class QuPathOperations(QuPathProject):
         tile_intersections = []
 
         if img_id in self.img_annot_dict:
-            ann_list = self.img_annot_dict[img_id]
-            for annot_class, poly in ann_list:
+            ann_tree, class_by_id = self.img_annot_dict[img_id]
+            near_polys = [o for o in ann_tree.query(polygon_tile)]
+            near_poly_classes = [class_by_id[id(o)] for o in near_polys]
+            for poly, annot_class in zip(near_polys, near_poly_classes):
                 intersection = poly.intersection(polygon_tile)
-
                 if not intersection.is_empty:
                     if isinstance(intersection, MultiPolygon):
                         for inter in intersection.geoms:
@@ -126,7 +128,10 @@ class QuPathOperations(QuPathProject):
                     else:
                         tile_intersections.append((annot_class, intersection))
 
-            self.img_annot_dict[img_id] = img_ann_list
+            img_ann_transposed = np.array(img_ann_list).transpose()
+            class_by_id = dict((id(ann_poly), img_ann_transposed[0][i]) for i, ann_poly in enumerate(img_ann_transposed[1]))
+            img_ann_tree = STRtree(img_ann_transposed[1])
+            self.img_annot_dict[img_id] = (img_ann_tree, class_by_id)
 
         return tile_intersections
 
