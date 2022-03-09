@@ -11,7 +11,7 @@ import os
 
 class QuPathOperations(QuPathProject):
     def __init__(self, path, mode = 'r'):
-        """ load or create a new qupath project
+        ''' load or create a new qupath project
 
         Parameters:
 
@@ -24,12 +24,13 @@ class QuPathOperations(QuPathProject):
                 'w' = 'w+' --> read/write, create if not there, truncate if there
                 'x' = 'x+' --> read/write, create if not there, error if there
 
-        """
+        '''
         super().__init__(path, mode)
         self._class_dict = {}
         for i, ann in enumerate(self.path_classes):
             self._class_dict[i] = ann
         self._inverse_class_dict = {value.id: key for key, value in self._class_dict.items()}
+        self.img_annot_dict = {}
 
 
     def update_path_classes(self, path_classes):
@@ -81,31 +82,51 @@ class QuPathOperations(QuPathProject):
         polygon_tile = Polygon(([location_x, location_y], [location_x + size, location_y], [location_x + size, location_y + size], [location_x, location_y + size]))
         tile_intersections = []
 
-        for geojson in hier_data:
-            try:
-                annot_class = geojson["properties"]["classification"]["name"]
-            except KeyError:
-                continue
-            poly_data = geojson['geometry']['coordinates']
-            try:    
-                polygon_annot = Polygon(poly_data[0], poly_data[1:]) if len(poly_data) > 1 else Polygon(poly_data[0])
-            except (ValueError, AssertionError) as e:
-                poly_data_squeezed = []
-                for i in range(len(poly_data)):
-                    poly_data_squeezed.append(np.array(poly_data[i]).squeeze())
-                try:
-                    polygon_annot = Polygon(poly_data_squeezed[0], poly_data_squeezed[1:]) if len(poly_data_squeezed) > 1 else Polygon(poly_data_squeezed[0])
-                except ValueError:
-                    polygon_annot = Polygon(poly_data_squeezed[0][0], poly_data_squeezed[1:]) if len(poly_data_squeezed) > 1 else Polygon(poly_data_squeezed[0][0])
-            
-            intersection = polygon_annot.intersection(polygon_tile)
+        if img_id in self.img_annot_dict:
+            ann_list = self.img_annot_dict[img_id]
+            for annot_class, poly in ann_list:
+                intersection = poly.intersection(polygon_tile)
 
-            if not intersection.is_empty:
-                if isinstance(intersection, MultiPolygon):
-                    for inter in intersection.geoms:
-                        tile_intersections.append((annot_class, inter))
+                if not intersection.is_empty:
+                    if isinstance(intersection, MultiPolygon):
+                        for inter in intersection.geoms:
+                            tile_intersections.append((annot_class, inter))
+                    else:
+                        tile_intersections.append((annot_class, intersection))
+
+        else:
+            img_ann_list = []
+            for geojson in hier_data: # only use polygons with classes
+                if 'properties' in geojson.keys() and 'classification' in geojson['properties'].keys():
+                    annot_class = geojson['properties']['classification']['name']
                 else:
-                    tile_intersections.append((annot_class, intersection))
+                    continue
+
+                poly_data = geojson['geometry']['coordinates']
+
+                try:    
+                    polygon_annot = Polygon(poly_data[0], poly_data[1:]) if len(poly_data) > 1 else Polygon(poly_data[0])
+                except (ValueError, AssertionError) as e:
+                    poly_data_squeezed = []
+                    for i in range(len(poly_data)):
+                        poly_data_squeezed.append(np.array(poly_data[i]).squeeze())
+                    try:
+                        polygon_annot = Polygon(poly_data_squeezed[0], poly_data_squeezed[1:]) if len(poly_data_squeezed) > 1 else Polygon(poly_data_squeezed[0])
+                    except ValueError: # multiple annotation areas for same annotation
+                        polygon_annot = Polygon(poly_data_squeezed[0][0], poly_data_squeezed[1:]) if len(poly_data_squeezed) > 1 else Polygon(poly_data_squeezed[0][0])
+
+                img_ann_list.append((annot_class, polygon_annot)) # save all Polygons in list to create a cache. Now the json only has to be converted ones per image
+
+                intersection = polygon_annot.intersection(polygon_tile)
+
+                if not intersection.is_empty:
+                    if isinstance(intersection, MultiPolygon):
+                        for inter in intersection.geoms:
+                            tile_intersections.append((annot_class, inter))
+                    else:
+                        tile_intersections.append((annot_class, intersection))
+
+            self.img_annot_dict[img_id] = img_ann_list
 
         return tile_intersections
 
