@@ -38,7 +38,8 @@ class QuPathOperations(QuPathProject):
         ''' update the annotation classes and annotation dictionaries of the project
         
         Parameters:
-            path_classes: annotation classes to set'''
+            path_classes: annotation classes to set
+        '''
         self.path_classes = path_classes
         for i, ann in enumerate(self.path_classes):
             self._class_dict[i] = ann
@@ -136,7 +137,7 @@ class QuPathOperations(QuPathProject):
         return tile_intersections
 
     
-    def get_tile_annot_mask(self, img_id, location_x, location_y, size):
+    def get_tile_annot_mask(self, img_id, location_x, location_y, size, multilabel = False):
         ''' get tile annotations mask between (x|y) and (x + size| y + size)
 
         Parameters:
@@ -144,28 +145,46 @@ class QuPathOperations(QuPathProject):
             img_id: id of image to operate
             location_x: x coordinate for tile begin
             location_y: y coordinate for tile begin
-            size:   size of tile (tile shape = (size, size))       
+            size:   size of tile (tile shape = (size, size))
+            multilabel: if True annotation mask contains boolean image for each class ([num_classes, size, size])
 
         Returns:
             annot_mask: mask [size, size] with an annotation class for each pixel
+                        or [num_class, size, size] for multilabels
+                        background class is ignored for multilabels ([0, size, size] shows mask for the first annotation class)
         '''
         tile_intersections = self.get_tile_annot(img_id, location_x, location_y, size)
-        # sort intersections descending by area. Now we can not accidentally overwrite polys with other poly holes
-        sorted_intersections = sorted(tile_intersections, key = lambda tup: tup[1].exterior.area, reverse=True)
+        
+        if multilabel:
+            num_classes = len(self.path_classes) -1 
+            annot_mask = np.zeros((num_classes, size, size))
 
-        annot_mask = np.zeros((size, size))
-        for inter_class, intersection in sorted_intersections:
+        else:
+            # sort intersections descending by area. Now we can not accidentally overwrite polys with other poly holes
+            sorted_intersections = sorted(tile_intersections, key = lambda tup: tup[1].exterior.area, reverse=True)
+            tile_intersections = sorted_intersections
+            annot_mask = np.zeros((size, size))
+        
+
+        for inter_class, intersection in tile_intersections:
             class_num = self._inverse_class_dict[inter_class]
+            if multilabel: # first class should be on the lowest level for multilabels
+                class_num -= 1
 
             trans_inter = shapely.affinity.translate(intersection, location_x * -1, location_y * -1)
 
             int_coords = lambda coords: np.array(coords).round().astype(np.int32)
             exteriors = [int_coords(trans_inter.exterior.coords)]
             interiors = [int_coords(poly) for poly in trans_inter.interiors]
-            
-            cv2.fillPoly(annot_mask, exteriors, class_num)
-            cv2.fillPoly(annot_mask, interiors, 0)
-        
+                
+            if multilabel:
+                cv2.fillPoly(annot_mask[class_num], exteriors, 1)
+                cv2.fillPoly(annot_mask[class_num], interiors, 0)
+
+            else:
+                cv2.fillPoly(annot_mask, exteriors, class_num)
+                cv2.fillPoly(annot_mask, interiors, 0)
+
         return annot_mask
 
 
