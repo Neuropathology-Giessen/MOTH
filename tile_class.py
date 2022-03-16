@@ -66,7 +66,7 @@ class QuPathOperations(QuPathProject):
         return(tile)
 
 
-    def get_tile_annot(self, img_id, location_x, location_y, size):
+    def get_tile_annot(self, img_id, location_x, location_y, size, class_filter = None):
         ''' get tile annotations between (x|y) and (x + size| y + size)
 
         Parameters:
@@ -74,10 +74,12 @@ class QuPathOperations(QuPathProject):
             img_id: id of image to operate
             location_x: x coordinate for tile begin
             location_y: y coordinate for tile begin
-            size:   size of tile (tile shape = (size, size))       
+            size:   size of tile (tile shape = (size, size)) 
+            class_filter: list of annotationclass names or ids to filter by
+                if None no filter is applied
 
         Returns:
-            tile_intersections: list of annotations in tile
+            tile_intersections: list of annotations (shapely polygons) in tile 
         '''
         slide = self.images[img_id]
         hier_data = slide.hierarchy.to_geojson()
@@ -90,12 +92,16 @@ class QuPathOperations(QuPathProject):
             near_poly_classes = [class_by_id[id(o)] for o in near_polys]
             for poly, annot_class in zip(near_polys, near_poly_classes):
                 intersection = poly.intersection(polygon_tile)
-                if not intersection.is_empty:
-                    if isinstance(intersection, MultiPolygon):
-                        for inter in intersection.geoms:
-                            tile_intersections.append((annot_class, inter))
-                    else:
-                        tile_intersections.append((annot_class, intersection))
+                if intersection.is_empty:
+                    continue
+                
+                filter_bool = (not class_filter) or (annot_class in class_filter) or (self._inverse_class_dict[annot_class] in class_filter)
+                if filter_bool and isinstance(intersection, MultiPolygon): # filter applies and polygon is a multipolygon
+                    for inter in intersection.geoms:                        
+                        tile_intersections.append((annot_class, inter))
+                
+                elif filter_bool: # filter applies and is not a multipolygon
+                    tile_intersections.append((annot_class, intersection))
 
         else:
             img_ann_list = []
@@ -121,15 +127,19 @@ class QuPathOperations(QuPathProject):
                 img_ann_list.append((annot_class, polygon_annot)) # save all Polygons in list to create a cache. Now the json only has to be converted ones per image
 
                 intersection = polygon_annot.intersection(polygon_tile)
+                if intersection.is_empty:
+                    continue
 
-                if not intersection.is_empty:
-                    if isinstance(intersection, MultiPolygon):
-                        for inter in intersection.geoms:
-                            tile_intersections.append((annot_class, inter))
-                    else:
-                        tile_intersections.append((annot_class, intersection))
+                filter_bool = (not class_filter) or (annot_class in class_filter) or (self._inverse_class_dict[annot_class] in class_filter)  
 
-            img_ann_transposed = np.array(img_ann_list).transpose()
+                if filter_bool and isinstance(intersection, MultiPolygon): # filter applies and polygon is a multipolygon
+                    for inter in intersection.geoms:
+                        tile_intersections.append((annot_class, inter))
+
+                elif filter_bool: # filter applies and is not a multipolygon
+                    tile_intersections.append((annot_class, intersection))
+
+            img_ann_transposed = np.array(img_ann_list).transpose() # [list(annot_classes), list(polygons)]
             class_by_id = dict((id(ann_poly), img_ann_transposed[0][i]) for i, ann_poly in enumerate(img_ann_transposed[1]))
             img_ann_tree = STRtree(img_ann_transposed[1])
             self.img_annot_dict[img_id] = (img_ann_tree, class_by_id)
@@ -137,7 +147,7 @@ class QuPathOperations(QuPathProject):
         return tile_intersections
 
     
-    def get_tile_annot_mask(self, img_id, location_x, location_y, size, multilabel = False):
+    def get_tile_annot_mask(self, img_id, location_x, location_y, size, multilabel = False, class_filter = None):
         ''' get tile annotations mask between (x|y) and (x + size| y + size)
 
         Parameters:
@@ -147,13 +157,15 @@ class QuPathOperations(QuPathProject):
             location_y: y coordinate for tile begin
             size:   size of tile (tile shape = (size, size))
             multilabel: if True annotation mask contains boolean image for each class ([num_classes, size, size])
+            class_filter: list of annotationclass names to filter by
+                if None no filter is applied
 
         Returns:
             annot_mask: mask [size, size] with an annotation class for each pixel
                         or [num_class, size, size] for multilabels
                         background class is ignored for multilabels ([0, size, size] shows mask for the first annotation class)
         '''
-        tile_intersections = self.get_tile_annot(img_id, location_x, location_y, size)
+        tile_intersections = self.get_tile_annot(img_id, location_x, location_y, size, class_filter)
         
         if multilabel:
             num_classes = len(self.path_classes) -1 
