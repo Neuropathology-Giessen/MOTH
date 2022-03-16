@@ -46,7 +46,7 @@ class QuPathOperations(QuPathProject):
         self._inverse_class_dict = {value.id: key for key, value in self._class_dict.items()}
 
 
-    def get_tile(self, img_dir, img_id, location_x, location_y, size):
+    def get_tile(self, img_dir, img_id, location_x, location_y, size, downsample_level = 0):
         ''' get tile between (x|y) and (x + size| y + size)
 
         Parameters:
@@ -55,14 +55,15 @@ class QuPathOperations(QuPathProject):
             img_id: id of image to operate
             location_x: x coordinate for tile begin
             location_y: y coordinate for tile begin
-            size:   size of tile (tile shape = (size, size))       
+            size:   size of tile (tile shape = (size, size), no autofitting for downsampling!)
+            downsample_level: level for downsampling
 
         Returns:
             tile:   tile image 
         '''
         slide = self.images[img_id]
         with OpenSlide(os.path.join(img_dir, slide.image_name)) as slide_data:
-            tile = slide_data.read_region((location_x, location_y), 0, (size, size))
+            tile = slide_data.read_region((location_x, location_y), downsample_level, (size, size))
         return(tile)
 
 
@@ -147,7 +148,7 @@ class QuPathOperations(QuPathProject):
         return tile_intersections
 
     
-    def get_tile_annot_mask(self, img_id, location_x, location_y, size, multilabel = False, class_filter = None):
+    def get_tile_annot_mask(self, img_id, location_x, location_y, size, downsample_level = 0, multilabel = False, class_filter = None):
         ''' get tile annotations mask between (x|y) and (x + size| y + size)
 
         Parameters:
@@ -159,6 +160,7 @@ class QuPathOperations(QuPathProject):
             multilabel: if True annotation mask contains boolean image for each class ([num_classes, size, size])
             class_filter: list of annotationclass names to filter by
                 if None no filter is applied
+            downsample_level: level for downsampling
 
         Returns:
             annot_mask: mask [size, size] with an annotation class for each pixel
@@ -166,7 +168,9 @@ class QuPathOperations(QuPathProject):
                         background class is ignored for multilabels ([0, size, size] shows mask for the first annotation class)
         '''
         tile_intersections = self.get_tile_annot(img_id, location_x, location_y, size, class_filter)
-        
+        downsample_factor = 2 ** downsample_level
+        size = round(size / downsample_factor)
+
         if multilabel:
             num_classes = len(self.path_classes) -1 
             annot_mask = np.zeros((num_classes, size, size))
@@ -184,10 +188,11 @@ class QuPathOperations(QuPathProject):
                 class_num -= 1
 
             trans_inter = shapely.affinity.translate(intersection, location_x * -1, location_y * -1)
+            scale_inter = shapely.affinity.scale(trans_inter, xfact = 1/downsample_factor, yfact = 1/downsample_factor, origin = (0,0))
 
             int_coords = lambda coords: np.array(coords).round().astype(np.int32)
-            exteriors = [int_coords(trans_inter.exterior.coords)]
-            interiors = [int_coords(poly) for poly in trans_inter.interiors]
+            exteriors = [int_coords(scale_inter.exterior.coords)]
+            interiors = [int_coords(poly) for poly in scale_inter.interiors]
                 
             if multilabel:
                 cv2.fillPoly(annot_mask[class_num], exteriors, 1)
