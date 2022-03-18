@@ -46,16 +46,15 @@ class QuPathOperations(QuPathProject):
         self._inverse_class_dict = {value.id: key for key, value in self._class_dict.items()}
 
 
-    def get_tile(self, img_dir, img_id, location_x, location_y, size, downsample_level = 0):
-        ''' get tile between (x|y) and (x + size| y + size)
+    def get_tile(self, img_dir, img_id, location, size, downsample_level = 0):
+        ''' get tile starting at x|y (slide level 0) with given size  
 
         Parameters:
 
-            img_dir: directory containing the image
-            img_id: id of image to operate
-            location_x: x coordinate for tile begin
-            location_y: y coordinate for tile begin
-            size:   size of tile (tile shape = (size, size), no autofitting for downsampling!)
+            img_dir:    directory containing the image
+            img_id:     id of image to operate
+            location:   (x, y) tuple containing coordinates for the top left pixel in the level 0 slide
+            size:       (width, height) tuple containing the tile size
             downsample_level: level for downsampling
 
         Returns:
@@ -63,28 +62,29 @@ class QuPathOperations(QuPathProject):
         '''
         slide = self.images[img_id]
         with OpenSlide(os.path.join(img_dir, slide.image_name)) as slide_data:
-            tile = slide_data.read_region((location_x, location_y), downsample_level, (size, size))
+            tile = slide_data.read_region(location, downsample_level, size)
         return(tile)
 
 
-    def get_tile_annot(self, img_id, location_x, location_y, size, class_filter = None):
+    def get_tile_annot(self, img_id, location, size, class_filter = None):
         ''' get tile annotations between (x|y) and (x + size| y + size)
 
         Parameters:
 
-            img_id: id of image to operate
-            location_x: x coordinate for tile begin
-            location_y: y coordinate for tile begin
-            size:   size of tile (tile shape = (size, size)) 
-            class_filter: list of annotationclass names or ids to filter by
-                if None no filter is applied
+            img_id:     id of image to operate
+            location:   (x, y) tuple containing coordinates for the top left pixel in the level 0 slide
+            size:       (width, height) tuple containing the tile size
+            class_filter:   list of annotationclass names or ids to filter by
+                            if None no filter is applied
 
         Returns:
             tile_intersections: list of annotations (shapely polygons) in tile 
         '''
         slide = self.images[img_id]
         hier_data = slide.hierarchy.to_geojson()
-        polygon_tile = Polygon(([location_x, location_y], [location_x + size, location_y], [location_x + size, location_y + size], [location_x, location_y + size]))
+        location_x, location_y = location
+        width, height = size
+        polygon_tile = Polygon(([location_x, location_y], [location_x + width, location_y], [location_x + width, location_y + height], [location_x, location_y + height]))
         tile_intersections = []
 
         if img_id in self.img_annot_dict:
@@ -148,38 +148,39 @@ class QuPathOperations(QuPathProject):
         return tile_intersections
 
     
-    def get_tile_annot_mask(self, img_id, location_x, location_y, size, downsample_level = 0, multilabel = False, class_filter = None):
+    def get_tile_annot_mask(self, img_id, location, size, downsample_level = 0, multilabel = False, class_filter = None):
         ''' get tile annotations mask between (x|y) and (x + size| y + size)
 
         Parameters:
 
-            img_id: id of image to operate
-            location_x: x coordinate for tile begin
-            location_y: y coordinate for tile begin
-            size:   size of tile (tile shape = (size, size))
-            multilabel: if True annotation mask contains boolean image for each class ([num_classes, size, size])
-            class_filter: list of annotationclass names to filter by
-                if None no filter is applied
+            img_id:     id of image to operate
+            location:   (x, y) tuple containing coordinates for the top left pixel in the level 0 slide
+            size:       (width, height) tuple containing the tile size
+            multilabel: if True annotation mask contains boolean image for each class ([num_classes, width, height])
+            class_filter:   list of annotationclass names to filter by
+                            if None no filter is applied
             downsample_level: level for downsampling
 
         Returns:
-            annot_mask: mask [size, size] with an annotation class for each pixel
-                        or [num_class, size, size] for multilabels
-                        background class is ignored for multilabels ([0, size, size] shows mask for the first annotation class)
+            annot_mask: mask [height, width] with an annotation class for each pixel
+                        or [num_class, height, width] for multilabels
+                        background class is ignored for multilabels ([0, height, width] shows mask for the first annotation class)
         '''
-        tile_intersections = self.get_tile_annot(img_id, location_x, location_y, size, class_filter)
-        downsample_factor = 2 ** downsample_level
-        size = round(size / downsample_factor)
+        location_x, location_y = location
+        width, height = size
+        downsample_factor = 2 ** downsample_level 
+        level_0_size = map(lambda x: x* downsample_factor, size) # level_0_size needed to get all Polygons in downsampled area
+        tile_intersections = self.get_tile_annot(img_id, location, level_0_size, class_filter)
 
         if multilabel:
             num_classes = len(self.path_classes) -1 
-            annot_mask = np.zeros((num_classes, size, size))
+            annot_mask = np.zeros((num_classes, height, width))
 
         else:
             # sort intersections descending by area. Now we can not accidentally overwrite polys with other poly holes
             sorted_intersections = sorted(tile_intersections, key = lambda tup: tup[1].exterior.area, reverse=True)
             tile_intersections = sorted_intersections
-            annot_mask = np.zeros((size, size))
+            annot_mask = np.zeros((height, width))
         
 
         for inter_class, intersection in tile_intersections:
@@ -188,7 +189,8 @@ class QuPathOperations(QuPathProject):
                 class_num -= 1
 
             trans_inter = shapely.affinity.translate(intersection, location_x * -1, location_y * -1)
-            scale_inter = shapely.affinity.scale(trans_inter, xfact = 1/downsample_factor, yfact = 1/downsample_factor, origin = (0,0))
+            # apply downsampling by scaling the Polygon down
+            scale_inter = shapely.affinity.scale(trans_inter, xfact = 1/downsample_factor, yfact = 1/downsample_factor, origin = (0,0)) 
 
             int_coords = lambda coords: np.array(coords).round().astype(np.int32)
             exteriors = [int_coords(scale_inter.exterior.coords)]
