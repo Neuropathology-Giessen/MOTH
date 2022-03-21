@@ -3,6 +3,7 @@ from paquo.projects import QuPathProject
 import numpy as np
 from shapely.geometry import Polygon, MultiPolygon
 from shapely.strtree import STRtree
+from shapely.validation import make_valid
 import shapely
 from openslide import OpenSlide
 import cv2
@@ -128,6 +129,9 @@ class QuPathOperations(QuPathProject):
                         except: # incorrect data, continue with next annotation
                             continue
 
+                if not polygon_annot.is_valid:
+                    polygon_annot = make_valid(polygon_annot)
+
                 img_ann_list.append((annot_class, polygon_annot)) # save all Polygons in list to create a cache. Now the json only has to be converted ones per image
 
                 intersection = polygon_annot.intersection(polygon_tile)
@@ -234,20 +238,32 @@ class QuPathOperations(QuPathProject):
 
 
     @classmethod
-    def label_img_to_polys(cls, label_img):
+    def label_img_to_polys(cls, label_img, multilabel = False):
         ''' convert label mask to list of Polygons
 
         Parameters:
             label_img: mask [H, W] with values between 0 and highest label class
+            multilabel: if True annotation mask contains boolean image for each class ([num_classes, width, height])
 
         Returns:
             poly_labels: list of Polygon and label tuple [(polygon, label), ...]
         '''
         label_img = label_img.astype(np.uint8)
         poly_labels = []
-        for i in range(1, np.max(label_img)+1):
-            label_img_copy = label_img.copy()
-            it_img = np.where(label_img_copy == i, 1, 0).astype(np.uint8)
+
+        if multilabel:
+            iter_range = range(len(label_img))
+        else:
+            iter_range = range(1, np.max(label_img)+1)
+
+        for i in iter_range:
+            if multilabel:
+                it_img = label_img[i]
+                i += 1
+            else:
+                label_img_copy = label_img.copy()
+                it_img = np.where(label_img_copy == i, 1, 0).astype(np.uint8)
+                
             contours, _ = cv2.findContours(it_img, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
             if len(contours) == 0:
                 continue
