@@ -163,10 +163,10 @@ class QuPathOperations(QuPathProject):
             img_id:     id of image to operate
             location:   (x, y) tuple containing coordinates for the top left pixel in the level 0 slide
             size:       (width, height) tuple containing the tile size
+            downsample_level: level for downsampling
             multilabel: if True annotation mask contains boolean image for each class ([num_classes, width, height])
             class_filter:   list of annotationclass names to filter by
                             if None no filter is applied
-            downsample_level: level for downsampling
 
         Returns:
             annot_mask: mask [height, width] with an annotation class for each pixel
@@ -237,8 +237,26 @@ class QuPathOperations(QuPathProject):
             slide.hierarchy.add_annotation(poly, path_class= self._class_dict[annot])
 
 
+    def save_mask_annotations(self, img_id, annot_mask, location = (0,0), downsample_level = 0, multilabel = False):
+        ''' saves a mask as annotations to QuPath
+
+        Parameters:
+
+            img_id:             id of image to operate
+            annot_mask:         mask with annotations
+            location:           (x, y) tuple containing coordinates for the top left pixel in the level 0 slide
+            downsample_level:   level for downsampling
+            multilabel:         if True annotation mask contains boolean image for each class ([num_classes, width, height])
+        '''
+        slide = self.images[img_id]
+        poly_annot_list = self.label_img_to_polys(annot_mask, downsample_level, multilabel)
+        for annot_poly, annot_class in poly_annot_list:
+            poly_to_add = shapely.affinity.translate(annot_poly, location[0], location[1])
+            slide.hierarchy.add_annotation(poly_to_add, self._class_dict[annot_class])
+
+
     @classmethod
-    def label_img_to_polys(cls, label_img, multilabel = False):
+    def label_img_to_polys(cls, label_img, downsample_level = 0, multilabel = False):
         ''' convert label mask to list of Polygons
 
         Parameters:
@@ -248,6 +266,7 @@ class QuPathOperations(QuPathProject):
         Returns:
             poly_labels: list of Polygon and label tuple [(polygon, label), ...]
         '''
+        downsample_factor = 2 ** downsample_level
         label_img = label_img.astype(np.uint8)
         poly_labels = []
 
@@ -269,6 +288,7 @@ class QuPathOperations(QuPathProject):
                 continue
             contours = map(np.squeeze, contours)
             polygons = map(Polygon, contours)
+            polygons = map(lambda poly: shapely.affinity.scale(poly, xfact = 1*downsample_factor, yfact = 1*downsample_factor, origin = (0,0)), polygons)
             polygons = map(lambda x: x.simplify(0), polygons)
             poly_label = map(lambda poly: (poly, i), polygons)
             
