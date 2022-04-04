@@ -214,27 +214,14 @@ class QuPathOperations(QuPathProject):
         return annot_mask
 
 
-    def save_tile(self, filename: str, img, label_img):
-        ''' save tile with annotations in QuPathProject
+    def merge_near_annotations(self, img_id, max_dist):
+        ''' merge nearby annotations with equivalent annotation class
 
         Parameters:
-
-            filename (str): name to save tile in project
-            img:            tile to save
-            label_img:      annotations of the tile
+            img_id:     id of image to operate
+            max_dist:   maximal distance between annotations to merge
         '''
-        slides_path = '{}/slides/'.format(os.path.split(self.path)[0])
-        # check if QuPath project is initilazed, if not save project before filling folder
-        if len(os.listdir(os.path.split(self.path)[0])) == 0:
-            self.save()
-            os.mkdir(slides_path)
-        img_path = '{}/slides/{}.tif'.format(os.path.split(self.path)[0], filename)
-        img.save(img_path)
-        slide = self.add_image(img_path)
-
-        poly_annot_list = self.label_img_to_polys(label_img)
-        for poly, annot in poly_annot_list:
-            slide.hierarchy.add_annotation(poly, path_class= self._class_dict[annot])
+        pass
 
 
     def save_mask_annotations(self, img_id, annot_mask, location = (0,0), downsample_level = 0, multilabel = False):
@@ -283,17 +270,35 @@ class QuPathOperations(QuPathProject):
                 label_img_copy = label_img.copy()
                 it_img = np.where(label_img_copy == i, 1, 0).astype(np.uint8)
                 
-            contours, _ = cv2.findContours(it_img, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
+            contours, hierarchy = cv2.findContours(it_img, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
+            contours = list(map(np.squeeze, contours))
             if len(contours) == 0:
                 continue
-            contours = map(np.squeeze, contours)
-            polygons = map(Polygon, contours)
-            polygons = map(lambda poly: shapely.affinity.scale(poly, xfact = 1*downsample_factor, yfact = 1*downsample_factor, origin = (0,0)), polygons)
-            polygons = map(lambda x: x.simplify(0), polygons)
-            poly_label = map(lambda poly: (poly, i), polygons)
-            
-            poly_labels.extend(
-                list(poly_label)
-            )
-            
+            # iterate hierarchy
+            next_id = 0                                 # start with first contour
+            while next_id != -1:
+                current_id = next_id                    # previous next id is now our current id
+                next_id = hierarchy[0][current_id][0]
+                child_id = hierarchy[0][current_id][2]
+
+                if len(contours[current_id]) < 3:       # linear ring possible?
+                    continue
+                
+                if child_id == -1:
+                    poly = Polygon(contours[current_id])
+                else:
+                    holes = []
+                    holes.append(contours[child_id])
+                    next_child_id = hierarchy[0][child_id][0]
+                    while next_child_id != -1:
+                        holes.append(contours[next_child_id])
+                        next_child_id = hierarchy[0][next_child_id][0]
+                    poly = Polygon(contours[current_id], holes)
+
+                poly = shapely.affinity.scale(poly, xfact = 1*downsample_factor, yfact = 1*downsample_factor, origin = (0,0))
+                if not poly.is_valid:
+                    poly = make_valid(poly)
+                poly_labels.append((poly, i))
+
+
         return poly_labels
