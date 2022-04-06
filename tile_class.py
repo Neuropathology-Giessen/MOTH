@@ -4,6 +4,7 @@ import numpy as np
 from shapely.geometry import Polygon, MultiPolygon
 from shapely.strtree import STRtree
 from shapely.validation import make_valid
+from shapely.ops import unary_union
 import shapely
 from openslide import OpenSlide
 import cv2
@@ -82,16 +83,16 @@ class QuPathOperations(QuPathProject):
             tile_intersections: list of annotations (shapely polygons) in tile 
         '''
         slide = self.images[img_id]
-        hier_data = slide.hierarchy.to_geojson()
+        hier_data = slide.hierarchy.annotations
         location_x, location_y = location
         width, height = size
         polygon_tile = Polygon(([location_x, location_y], [location_x + width, location_y], [location_x + width, location_y + height], [location_x, location_y + height]))
         tile_intersections = []
 
         if img_id in self.img_annot_dict:
-            ann_tree, class_by_id = self.img_annot_dict[img_id]
-            near_polys = [o for o in ann_tree.query(polygon_tile)]
-            near_poly_classes = [class_by_id[id(o)] for o in near_polys]
+            ann_tree, index_and_class = self.img_annot_dict[img_id]
+            near_polys = [poly for poly in ann_tree.query(polygon_tile)]
+            near_poly_classes = [index_and_class[id(poly)][1] for poly in near_polys]
             for poly, annot_class in zip(near_polys, near_poly_classes):
                 intersection = poly.intersection(polygon_tile)
                 if intersection.is_empty:
@@ -99,7 +100,7 @@ class QuPathOperations(QuPathProject):
                 
                 filter_bool = (not class_filter) or (annot_class in class_filter) or (self._inverse_class_dict[annot_class] in class_filter)
                 if filter_bool and isinstance(intersection, MultiPolygon): # filter applies and polygon is a multipolygon
-                    for inter in intersection.geoms:                        
+                    for inter in intersection.geoms:
                         tile_intersections.append((annot_class, inter))
                 
                 elif filter_bool: # filter applies and is not a multipolygon
@@ -107,32 +108,12 @@ class QuPathOperations(QuPathProject):
 
         else:
             img_ann_list = []
-            for geojson in hier_data: # only use polygons with classes
-                if 'properties' in geojson.keys() and 'classification' in geojson['properties'].keys():
-                    annot_class = geojson['properties']['classification']['name']
-                else:
+            for annot in hier_data:
+                if not annot.path_class:
                     continue
-
-                poly_data = geojson['geometry']['coordinates']
-
-                try:    
-                    polygon_annot = Polygon(poly_data[0], poly_data[1:]) if len(poly_data) > 1 else Polygon(poly_data[0])
-                except (ValueError, AssertionError) as e:
-                    poly_data_squeezed = []
-                    for i in range(len(poly_data)):
-                        poly_data_squeezed.append(np.array(poly_data[i]).squeeze())
-                    try:
-                        polygon_annot = Polygon(poly_data_squeezed[0], poly_data_squeezed[1:]) if len(poly_data_squeezed) > 1 else Polygon(poly_data_squeezed[0])
-                    except ValueError: # multiple annotation areas for same annotation
-                        try:
-                            polygon_annot = Polygon(poly_data_squeezed[0][0], poly_data_squeezed[1:]) if len(poly_data_squeezed) > 1 else Polygon(poly_data_squeezed[0][0])
-                        except: # incorrect data, continue with next annotation
-                            continue
-
-                if not polygon_annot.is_valid:
-                    polygon_annot = make_valid(polygon_annot)
-
-                img_ann_list.append((annot_class, polygon_annot)) # save all Polygons in list to create a cache. Now the json only has to be converted ones per image
+                annot_class = annot.path_class.id
+                polygon_annot = annot.roi
+                img_ann_list.append((polygon_annot, annot_class)) # save all Polygons in list to create a cache. Now the json only has to be converted ones per image
 
                 intersection = polygon_annot.intersection(polygon_tile)
                 if intersection.is_empty:
@@ -147,9 +128,9 @@ class QuPathOperations(QuPathProject):
                 elif filter_bool: # filter applies and is not a multipolygon
                     tile_intersections.append((annot_class, intersection))
 
-            img_ann_transposed = np.array(img_ann_list).transpose() # [list(annot_classes), list(polygons)]
-            class_by_id = dict((id(ann_poly), img_ann_transposed[0][i]) for i, ann_poly in enumerate(img_ann_transposed[1]))
-            img_ann_tree = STRtree(img_ann_transposed[1])
+            img_ann_transposed = np.array(img_ann_list, dtype = object).transpose() # [list(rois), list(annotation_classes)]
+            class_by_id = dict((id(ann_poly), (i, img_ann_transposed[1][i])) for i, ann_poly in enumerate(img_ann_transposed[0]))
+            img_ann_tree = STRtree(img_ann_transposed[0])
             self.img_annot_dict[img_id] = (img_ann_tree, class_by_id)
 
         return tile_intersections
@@ -222,6 +203,57 @@ class QuPathOperations(QuPathProject):
             max_dist:   maximal distance between annotations to merge
         '''
         pass
+        hierarchy = self.images[img_id].hierarchy
+        annotations = hierarchy.annotations
+        self.update_img_annot_dict(img_id)
+        already_merged = []
+        ann_tree, class_by_id = self.img_annot_dict[img_id]
+
+        for index, annot in enumerate(annotations):
+            annot_poly = annot.roi
+            annot_poly_class = annot.path_class
+            annot_poly_buffered = annot_poly.buffer(max_dist)
+            near_polys = [poly for poly in ann_tree.query(annot_poly_buffered)]
+            near_poly_index_and_classes = [class_by_id[id(poly)] for poly in near_polys]
+
+            for near_poly, near_annot_attr in zip(near_polys, near_poly_index_and_classes):
+                near_poly_index, near_annot_class = near_annot_attr
+                index_pair = set((index, near_poly_index))
+
+                if index_pair in already_merged:
+                    annotations.discard(annot)
+                    continue
+                if index == near_poly_index:
+                    continue
+                if annot_poly_class.id != near_annot_class.id:
+                    continue
+
+                near_poly_buffered = near_poly.buffer(max_dist)
+                intersection = near_poly_buffered.intersection(annot_poly_buffered)
+                if intersection.is_empty:
+                    continue
+                merged_annot = unary_union([near_poly_buffered, annot_poly_buffered]).buffer(-max_dist)
+                hierarchy.add_annotation(merged_annot, self._class_dict[
+                    self._inverse_class_dict[annot_poly_class.id]
+                ])
+                annotations.discard(annot)
+                already_merged.append(index_pair)
+
+
+    def update_img_annot_dict(self, img_id):
+        ''' update annotation rois tree for faster shapely queries
+
+        Parameters:
+            img_id:     id of image to operate
+        '''
+        slide = self.images[img_id]
+        annotations = slide.hierarchy.annotations
+        img_ann_list = [(annot.roi, annot.path_class) for annot in annotations]
+
+        img_ann_transposed = np.array(img_ann_list, dtype = object).transpose() # [list(rois), list(annot_classes)]
+        class_by_id = dict((id(ann_poly), (i, img_ann_transposed[1][i])) for i, ann_poly in enumerate(img_ann_transposed[0]))
+        img_ann_tree = STRtree(img_ann_transposed[0])
+        self.img_annot_dict[img_id] = (img_ann_tree, class_by_id)
 
 
     def save_mask_annotations(self, img_id, annot_mask, location = (0,0), downsample_level = 0, multilabel = False):
