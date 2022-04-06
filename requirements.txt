@@ -1,4 +1,0 @@
-openslide-python
-paquo
-numpy
-shapely
