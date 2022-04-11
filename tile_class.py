@@ -113,7 +113,7 @@ class QuPathOperations(QuPathProject):
                     continue
                 annot_class = annot.path_class.id
                 polygon_annot = annot.roi
-                img_ann_list.append((polygon_annot, annot_class)) # save all Polygons in list to create a cache. Now the json only has to be converted ones per image
+                img_ann_list.append((polygon_annot, annot_class)) # save all Polygons in list to create a cache.
 
                 intersection = polygon_annot.intersection(polygon_tile)
                 if intersection.is_empty:
@@ -202,42 +202,52 @@ class QuPathOperations(QuPathProject):
             img_id:     id of image to operate
             max_dist:   maximal distance between annotations to merge
         '''
-        pass
         hierarchy = self.images[img_id].hierarchy
         annotations = hierarchy.annotations
         self.update_img_annot_dict(img_id)
-        already_merged = []
+        already_merged = [] # save merged indicies
         ann_tree, class_by_id = self.img_annot_dict[img_id]
 
         for index, annot in enumerate(annotations):
+            if index in already_merged:
+                annotations.discard(annot)
+                continue
             annot_poly = annot.roi
             annot_poly_class = annot.path_class
             annot_poly_buffered = annot_poly.buffer(max_dist)
-            near_polys = [poly for poly in ann_tree.query(annot_poly_buffered)]
-            near_poly_index_and_classes = [class_by_id[id(poly)] for poly in near_polys]
 
-            for near_poly, near_annot_attr in zip(near_polys, near_poly_index_and_classes):
-                near_poly_index, near_annot_class = near_annot_attr
-                index_pair = set((index, near_poly_index))
+            annotations_to_merge = [annot_poly_buffered]
 
-                if index_pair in already_merged:
-                    annotations.discard(annot)
-                    continue
-                if index == near_poly_index:
-                    continue
-                if annot_poly_class.id != near_annot_class.id:
-                    continue
+            nested_annotations = [annot_poly_buffered]
+            while len(nested_annotations) > 0:
+                annot_poly_buffered = nested_annotations.pop(0)
+                near_polys = [poly for poly in ann_tree.query(annot_poly_buffered)]
+                near_poly_index_and_classes = [class_by_id[id(poly)] for poly in near_polys]
 
-                near_poly_buffered = near_poly.buffer(max_dist)
-                intersection = near_poly_buffered.intersection(annot_poly_buffered)
-                if intersection.is_empty:
-                    continue
-                merged_annot = unary_union([near_poly_buffered, annot_poly_buffered]).buffer(-max_dist)
+                while len(near_polys) > 0:
+                    near_poly = near_polys.pop(0)
+                    near_poly_index, near_poly_annotation_class = near_poly_index_and_classes.pop(0)
+
+                    if near_poly_index in already_merged:
+                        continue
+                    if index == near_poly_index: # tree query will always return the polygon from the same annotation
+                        continue
+                    if annot_poly_class.id != near_poly_annotation_class.id:
+                        continue
+
+                    near_poly_buffered = near_poly.buffer(max_dist)
+                    intersects = near_poly_buffered.intersects(annot_poly_buffered)
+                    if intersects:     
+                        annotations_to_merge.append(near_poly_buffered)
+                        nested_annotations.append(near_poly_buffered)
+                        already_merged.append(near_poly_index)
+
+            if len(annotations_to_merge) > 1:
+                merged_annot = unary_union(annotations_to_merge).buffer(-max_dist)
                 hierarchy.add_annotation(merged_annot, self._class_dict[
                     self._inverse_class_dict[annot_poly_class.id]
                 ])
                 annotations.discard(annot)
-                already_merged.append(index_pair)
 
 
     def update_img_annot_dict(self, img_id):
