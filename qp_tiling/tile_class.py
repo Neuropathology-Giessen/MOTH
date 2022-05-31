@@ -80,7 +80,7 @@ class QuPathOperations(QuPathProject):
                             if None no filter is applied
 
         Returns:
-            tile_intersections: list of annotations (shapely polygons) in tile 
+            tile_intersections: list of annotations (shapely polygons) in tile
         '''
         slide = self.images[img_id]
         hier_data = slide.hierarchy.annotations
