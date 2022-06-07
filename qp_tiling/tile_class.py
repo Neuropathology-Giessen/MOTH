@@ -43,6 +43,7 @@ class QuPathOperations(QuPathProject):
             path_classes: annotation classes to set
         '''
         self.path_classes = path_classes
+        self._class_dict = {}
         for i, ann in enumerate(self.path_classes):
             self._class_dict[i] = ann
         self._inverse_class_dict = {value.id: key for key, value in self._class_dict.items()}
@@ -166,7 +167,7 @@ class QuPathOperations(QuPathProject):
 
         else:
             # sort intersections descending by area. Now we can not accidentally overwrite polys with other poly holes
-            sorted_intersections = sorted(tile_intersections, key = lambda tup: tup[1].exterior.area, reverse=True)
+            sorted_intersections = sorted(tile_intersections, key = lambda tup: Polygon(tup[1].exterior).area, reverse=True)
             tile_intersections = sorted_intersections
             annot_mask = np.zeros((height, width))
         
@@ -312,6 +313,7 @@ class QuPathOperations(QuPathProject):
                 i += 1
             else:
                 label_img_copy = label_img.copy()
+
                 it_img = np.where(label_img_copy == i, 1, 0).astype(np.uint8)
                 
             contours, hierarchy = cv2.findContours(it_img, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
