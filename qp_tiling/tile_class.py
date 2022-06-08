@@ -1,7 +1,7 @@
 from paquo.projects import QuPathProject
 
 import numpy as np
-from shapely.geometry import Polygon, MultiPolygon
+from shapely.geometry import Polygon, MultiPolygon, CAP_STYLE, JOIN_STYLE
 from shapely.strtree import STRtree
 from shapely.validation import make_valid
 from shapely.ops import unary_union
@@ -183,7 +183,7 @@ class QuPathOperations(QuPathProject):
 
             int_coords = lambda coords: np.array(coords).round().astype(np.int32)
             exteriors = [int_coords(scale_inter.exterior.coords)]
-            interiors = [int_coords(poly) for poly in scale_inter.interiors]
+            interiors = [int_coords(poly.coords) for poly in scale_inter.interiors]
                 
             if multilabel:
                 cv2.fillPoly(annot_mask[class_num], exteriors, 1)
@@ -334,10 +334,26 @@ class QuPathOperations(QuPathProject):
                     poly = Polygon(contours[current_id])
                 else:
                     holes = []
-                    holes.append(contours[child_id])
+                    hole_poly = Polygon(contours[child_id]).buffer(
+                        -1,
+                        join_style= JOIN_STYLE.mitre,
+                        cap_style= CAP_STYLE.square
+                    )
+                    holes.append(list(map(
+                        lambda coords: np.array(coords).round().astype(np.int32),
+                        hole_poly.exterior.coords
+                    )))
                     next_child_id = hierarchy[0][child_id][0]
                     while next_child_id != -1:
-                        holes.append(contours[next_child_id])
+                        hole_poly = Polygon(contours[child_id]).buffer(
+                            -1,
+                            join_style= JOIN_STYLE.mitre,
+                            cap_style= CAP_STYLE.square
+                        )
+                        holes.append(list(map(
+                            lambda coords: np.array(coords).round().astype(np.int32),
+                            hole_poly.exterior.coords
+                        )))
                         next_child_id = hierarchy[0][next_child_id][0]
                     poly = Polygon(contours[current_id], holes)
 
