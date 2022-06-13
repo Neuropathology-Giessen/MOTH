@@ -9,13 +9,13 @@ RUN apt-get -y install build-essential
 
 RUN pip install --upgrade pip
 RUN pip install numpy
-RUN pip install seaborn
 RUN pip install openslide-python
 RUN pip install opencv-python
 RUN pip install paquo
+RUN pip install shapely
+RUN pip install tifffile
 
 WORKDIR /gbm_qupath_tiles
-
 
 COPY . .
 

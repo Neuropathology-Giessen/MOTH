@@ -1,3 +1,20 @@
+# QuPath installation
+QuPath
+config
+
+# untracked files
+first_steps.ipynb
+test_class.ipynb
+
+# data
+Qupath_data
+test_project
+test/qp_project
+test/test_for_tests.ipynb
+
+# docker
+.devcontainer
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -127,13 +144,3 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-
-# QuPath installation
-QuPath
-config
-
-# data
-Qupath_data
-
-# docker
-.devcontainer
