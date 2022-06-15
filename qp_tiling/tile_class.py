@@ -87,7 +87,7 @@ class QuPathOperations(QuPathProject):
         hier_data = slide.hierarchy.annotations
         location_x, location_y = location
         width, height = size
-        polygon_tile = Polygon(([location_x, location_y], [location_x + width, location_y], [location_x + width, location_y + height], [location_x, location_y + height]))
+        polygon_tile = Polygon(([location_x, location_y], [location_x + width - 1, location_y], [location_x + width - 1, location_y + height - 1], [location_x, location_y + height - 1]))
         tile_intersections = []
 
         if img_id in self.img_annot_dict:
@@ -233,7 +233,7 @@ class QuPathOperations(QuPathProject):
                         continue
                     if index == near_poly_index: # tree query will always return the polygon from the same annotation
                         continue
-                    if annot_poly_class.id != near_poly_annotation_class.id:
+                    if annot_poly_class != near_poly_annotation_class:
                         continue
 
                     near_poly_buffered = near_poly.buffer(max_dist)
@@ -245,9 +245,7 @@ class QuPathOperations(QuPathProject):
 
             if len(annotations_to_merge) > 1:
                 merged_annot = unary_union(annotations_to_merge).buffer(-max_dist)
-                hierarchy.add_annotation(merged_annot, self._class_dict[
-                    self._inverse_class_dict[annot_poly_class.id]
-                ])
+                hierarchy.add_annotation(merged_annot, annot_poly_class)
                 annotations.discard(annot)
 
 
@@ -259,7 +257,7 @@ class QuPathOperations(QuPathProject):
         '''
         slide = self.images[img_id]
         annotations = slide.hierarchy.annotations
-        img_ann_list = [(annot.roi, annot.path_class) for annot in annotations]
+        img_ann_list = [(annot.roi, annot.path_class.id) for annot in annotations]
 
         img_ann_transposed = np.array(img_ann_list, dtype = object).transpose() # [list(rois), list(annot_classes)]
         class_by_id = dict((id(ann_poly), (i, img_ann_transposed[1][i])) for i, ann_poly in enumerate(img_ann_transposed[0]))
