@@ -14,6 +14,9 @@ RUN pip install opencv-python
 RUN pip install paquo
 RUN pip install shapely
 RUN pip install tifffile
+RUN pip install torch
+RUN pip install torchvision
+RUN pip install progress
 
 WORKDIR /gbm_qupath_tiles
 

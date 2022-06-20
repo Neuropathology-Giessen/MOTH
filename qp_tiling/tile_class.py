@@ -166,13 +166,13 @@ class QuPathOperations(QuPathProject):
 
         if multilabel:
             num_classes = len(self.path_classes) -1 
-            annot_mask = np.zeros((num_classes, height, width))
+            annot_mask = np.zeros((num_classes, height, width), dtype = np.uint8)
 
         else:
             # sort intersections descending by area. Now we can not accidentally overwrite polys with other poly holes
             sorted_intersections = sorted(tile_intersections, key = lambda tup: Polygon(tup[1].exterior).area, reverse=True)
             tile_intersections = sorted_intersections
-            annot_mask = np.zeros((height, width))
+            annot_mask = np.zeros((height, width), dtype = np.uint8)
         
 
         for inter_class, intersection in tile_intersections:
