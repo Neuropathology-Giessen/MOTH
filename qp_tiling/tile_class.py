@@ -6,7 +6,7 @@ from shapely.strtree import STRtree
 from shapely.validation import make_valid
 from shapely.ops import unary_union
 import shapely
-from openslide import OpenSlide
+import openslide
 import cv2
 
 import os
@@ -64,7 +64,7 @@ class QuPathOperations(QuPathProject):
             tile:   tile image 
         '''
         slide = self.images[img_id]
-        with OpenSlide(os.path.join(img_dir, slide.image_name)) as slide_data:
+        with openslide.open_slide(os.path.join(img_dir, slide.image_name)) as slide_data:
             tile = slide_data.read_region(location, downsample_level, size)
         return(tile)
 
