@@ -1,118 +1,23 @@
 {
   "version": "0.3.2",
-  "createTimestamp": 1655106587686,
-  "modifyTimestamp": 1655106587686,
+  "createTimestamp": 1655711137638,
+  "modifyTimestamp": 1655711137638,
   "uri": "file:/home/tkauer/programs/github/GBM_QuPath_tiles/test/test_projects/qp_project/project.qpproj",
   "lastID": 1,
   "images": [
     {
       "serverBuilder": {
-        "builderType": "pyramidize",
-        "builder": {
-          "builderType": "uri",
-          "providerClassName": "qupath.lib.images.servers.bioformats.BioFormatsServerBuilder",
-          "uri": "file:///home/tkauer/programs/github/GBM_QuPath_tiles/test/test_projects/slides/white-5000.jpg",
-          "args": [
-            "--series",
-            "0"
-          ],
-          "metadata": {
-            "name": "white-5000.jpg",
-            "width": 5000,
-            "height": 5000,
-            "sizeZ": 1,
-            "sizeT": 1,
-            "channelType": "DEFAULT",
-            "isRGB": false,
-            "pixelType": "UINT8",
-            "levels": [
-              {
-                "downsample": 1.0,
-                "width": 5000,
-                "height": 5000
-              }
-            ],
-            "channels": [
-              {
-                "name": "Channel 1",
-                "color": -1
-              }
-            ],
-            "pixelCalibration": {
-              "pixelWidth": {
-                "value": 1.0,
-                "unit": "px"
-              },
-              "pixelHeight": {
-                "value": 1.0,
-                "unit": "px"
-              },
-              "zSpacing": {
-                "value": 1.0,
-                "unit": "z-slice"
-              },
-              "timeUnit": "SECONDS",
-              "timepoints": []
-            },
-            "preferredTileWidth": 5000,
-            "preferredTileHeight": 5000
-          }
-        },
-        "metadata": {
-          "name": "white-5000.jpg",
-          "width": 5000,
-          "height": 5000,
-          "sizeZ": 1,
-          "sizeT": 1,
-          "channelType": "DEFAULT",
-          "isRGB": false,
-          "pixelType": "UINT8",
-          "levels": [
-            {
-              "downsample": 1.0,
-              "width": 5000,
-              "height": 5000
-            },
-            {
-              "downsample": 4.0,
-              "width": 1250,
-              "height": 1250
-            },
-            {
-              "downsample": 16.0,
-              "width": 312,
-              "height": 312
-            }
-          ],
-          "channels": [
-            {
-              "name": "Channel 1",
-              "color": -1
-            }
-          ],
-          "pixelCalibration": {
-            "pixelWidth": {
-              "value": 1.0,
-              "unit": "px"
-            },
-            "pixelHeight": {
-              "value": 1.0,
-              "unit": "px"
-            },
-            "zSpacing": {
-              "value": 1.0,
-              "unit": "z-slice"
-            },
-            "timeUnit": "SECONDS",
-            "timepoints": []
-          },
-          "preferredTileWidth": 256,
-          "preferredTileHeight": 256
-        }
+        "builderType": "uri",
+        "providerClassName": "qupath.lib.images.servers.bioformats.BioFormatsServerBuilder",
+        "uri": "file:/home/tkauer/programs/github/GBM_QuPath_tiles/test/test_projects/slides/white-4096.tif",
+        "args": [
+          "--series",
+          "0"
+        ]
       },
       "entryID": 1,
-      "randomizedName": "4fabf5b9-1785-48c2-b567-438a3a2cdb97",
-      "imageName": "white-5000.jpg",
+      "randomizedName": "d90d9b12-d76c-4cc3-9b48-8213e7b4ce2b",
+      "imageName": "white-4096.tif",
       "metadata": {}
     }
   ]
