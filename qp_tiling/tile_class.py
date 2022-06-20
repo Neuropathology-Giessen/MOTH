@@ -1,7 +1,7 @@
 from paquo.projects import QuPathProject
 
 import numpy as np
-from shapely.geometry import Polygon, MultiPolygon, CAP_STYLE, JOIN_STYLE
+from shapely.geometry import Polygon, MultiPolygon, GeometryCollection, CAP_STYLE, JOIN_STYLE
 from shapely.strtree import STRtree
 from shapely.validation import make_valid
 from shapely.ops import unary_union
@@ -100,9 +100,11 @@ class QuPathOperations(QuPathProject):
                     continue
                 
                 filter_bool = (not class_filter) or (annot_class in class_filter) or (self._inverse_class_dict[annot_class] in class_filter)
-                if filter_bool and isinstance(intersection, MultiPolygon): # filter applies and polygon is a multipolygon
+
+                if filter_bool and (isinstance(intersection, MultiPolygon) or isinstance(intersection, GeometryCollection)): # filter applies and polygon is a multipolygon
                     for inter in intersection.geoms:
-                        tile_intersections.append((annot_class, inter))
+                        if isinstance(inter, Polygon):
+                            tile_intersections.append((annot_class, inter))
                 
                 elif filter_bool: # filter applies and is not a multipolygon
                     tile_intersections.append((annot_class, intersection))
@@ -122,9 +124,10 @@ class QuPathOperations(QuPathProject):
 
                 filter_bool = (not class_filter) or (annot_class in class_filter) or (self._inverse_class_dict[annot_class] in class_filter)  
 
-                if filter_bool and isinstance(intersection, MultiPolygon): # filter applies and polygon is a multipolygon
+                if filter_bool and (isinstance(intersection, MultiPolygon) or isinstance(intersection, GeometryCollection)): # filter applies and polygon is a multipolygon
                     for inter in intersection.geoms:
-                        tile_intersections.append((annot_class, inter))
+                        if isinstance(inter, Polygon):
+                            tile_intersections.append((annot_class, inter))
 
                 elif filter_bool: # filter applies and is not a multipolygon
                     tile_intersections.append((annot_class, intersection))
