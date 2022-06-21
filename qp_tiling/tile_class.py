@@ -217,7 +217,7 @@ class QuPathOperations(QuPathProject):
                 annotations.discard(annot)
                 continue
             annot_poly = annot.roi
-            annot_poly_class = annot.path_class
+            annot_poly_class = annot.path_class.id
             annot_poly_buffered = annot_poly.buffer(max_dist)
 
             annotations_to_merge = [annot_poly_buffered]
@@ -248,7 +248,7 @@ class QuPathOperations(QuPathProject):
 
             if len(annotations_to_merge) > 1:
                 merged_annot = unary_union(annotations_to_merge).buffer(-max_dist)
-                hierarchy.add_annotation(merged_annot, annot_poly_class)
+                hierarchy.add_annotation(merged_annot, self._class_dict[self._inverse_class_dict[annot_poly_class]])
                 annotations.discard(annot)
 
 
