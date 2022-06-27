@@ -48,6 +48,22 @@ class QuPathOperations(QuPathProject):
             self._class_dict[i] = ann
         self._inverse_class_dict = {value.id: key for key, value in self._class_dict.items()}
 
+    
+    def update_img_annot_dict(self, img_id):
+        ''' update annotation rois tree for faster shapely queries
+
+        Parameters:
+            img_id:     id of image to operate
+        '''
+        slide = self.images[img_id]
+        annotations = slide.hierarchy.annotations
+        img_ann_list = [(annot.roi, annot.path_class.id) for annot in annotations]
+
+        img_ann_transposed = np.array(img_ann_list, dtype = object).transpose() # [list(rois), list(annot_classes)]
+        class_by_id = dict((id(ann_poly), (i, img_ann_transposed[1][i])) for i, ann_poly in enumerate(img_ann_transposed[0]))
+        img_ann_tree = STRtree(img_ann_transposed[0])
+        self.img_annot_dict[img_id] = (img_ann_tree, class_by_id)
+
 
     def get_tile(self, img_dir, img_id, location, size, downsample_level = 0):
         ''' get tile starting at x|y (slide level 0) with given size  
@@ -151,7 +167,6 @@ class QuPathOperations(QuPathProject):
             downsample_level: level for downsampling
             multilabel: if True annotation mask contains boolean image for each class ([num_classes, width, height])
             class_filter:   list of annotationclass names to filter by
-                            if None no filter is applied
 
         Returns:
             annot_mask: mask [height, width] with an annotation class for each pixel
@@ -199,7 +214,25 @@ class QuPathOperations(QuPathProject):
         return annot_mask
 
 
-    def merge_near_annotations(self, img_id, max_dist):
+    def save_mask_annotations(self, img_id, annot_mask, location = (0,0), downsample_level = 0, min_polygon_area = 0, multilabel = False):
+        ''' saves a mask as annotations to QuPath
+
+        Parameters:
+            img_id:             id of image to operate
+            annot_mask:         mask with annotations
+            location:           (x, y) tuple containing coordinates for the top left pixel in the level 0 slide
+            downsample_level:   level for downsampling
+            min_polygon_area:   minimal area for polygons to be saved
+            multilabel:         if True annotation mask contains boolean image for each class ([num_classes, width, height])
+        '''
+        slide = self.images[img_id]
+        poly_annot_list = self.label_img_to_polys(annot_mask, downsample_level, min_polygon_area, multilabel)
+        for annot_poly, annot_class in poly_annot_list:
+            poly_to_add = shapely.affinity.translate(annot_poly, location[0], location[1])
+            slide.hierarchy.add_annotation(poly_to_add, self._class_dict[annot_class])
+
+
+def merge_near_annotations(self, img_id, max_dist):
         ''' merge nearby annotations with equivalent annotation class
 
         Parameters:
@@ -250,40 +283,6 @@ class QuPathOperations(QuPathProject):
                 merged_annot = unary_union(annotations_to_merge).buffer(-max_dist)
                 hierarchy.add_annotation(merged_annot, self._class_dict[self._inverse_class_dict[annot_poly_class]])
                 annotations.discard(annot)
-
-
-    def update_img_annot_dict(self, img_id):
-        ''' update annotation rois tree for faster shapely queries
-
-        Parameters:
-            img_id:     id of image to operate
-        '''
-        slide = self.images[img_id]
-        annotations = slide.hierarchy.annotations
-        img_ann_list = [(annot.roi, annot.path_class.id) for annot in annotations]
-
-        img_ann_transposed = np.array(img_ann_list, dtype = object).transpose() # [list(rois), list(annot_classes)]
-        class_by_id = dict((id(ann_poly), (i, img_ann_transposed[1][i])) for i, ann_poly in enumerate(img_ann_transposed[0]))
-        img_ann_tree = STRtree(img_ann_transposed[0])
-        self.img_annot_dict[img_id] = (img_ann_tree, class_by_id)
-
-
-    def save_mask_annotations(self, img_id, annot_mask, location = (0,0), downsample_level = 0, min_polygon_area = 0, multilabel = False):
-        ''' saves a mask as annotations to QuPath
-
-        Parameters:
-            img_id:             id of image to operate
-            annot_mask:         mask with annotations
-            location:           (x, y) tuple containing coordinates for the top left pixel in the level 0 slide
-            downsample_level:   level for downsampling
-            min_polygon_area:   minimal area for polygons to be saved
-            multilabel:         if True annotation mask contains boolean image for each class ([num_classes, width, height])
-        '''
-        slide = self.images[img_id]
-        poly_annot_list = self.label_img_to_polys(annot_mask, downsample_level, min_polygon_area, multilabel)
-        for annot_poly, annot_class in poly_annot_list:
-            poly_to_add = shapely.affinity.translate(annot_poly, location[0], location[1])
-            slide.hierarchy.add_annotation(poly_to_add, self._class_dict[annot_class])
 
 
     @classmethod
