@@ -155,7 +155,43 @@ class QuPathOperations(QuPathProject):
 
         return tile_intersections
 
-    
+    # def _coord_to_intcoords(self, coord, centroid):
+    #     ''' get integer parsed coord for cood 
+        
+    #     '''
+    #     coord_greater_centroid = coord > centroid # save if coord x/y is grater then centroid x/y
+    #     coord_pixel_values = coord % 1
+    #     coord_pixel_value = np.where(coord_greater_centroid, coord_pixel_values, 1 - coord_pixel_values)
+
+
+    def _round_polygon(self, polygon):
+        ''' round polygon coords to discreet values 
+
+            Parameters:
+                polygon:    Polygon to round coords
+
+            Returns:
+                exterior:   rounded exterior coords
+                interior:   rounded interior coords
+        '''
+        exteriors = np.array(polygon.exterior.coords)
+        interiors = np.array([poly.coords.xy for poly in polygon.interiors])
+        centroid_coords = np.array([polygon.centroid.x, polygon.centroid.y])
+        int_coord = lambda coord, centroid_coords: np.where(
+            coord > centroid_coords,
+            np.round(coord) - 1,
+            # np.ceil(coord) if np.multiply(coord % 1) < 0.5
+            np.round(coord)
+        )
+
+        # np.multiply(coord % 1) < 0.5
+        exteriors = np.apply_along_axis(int_coord, 1, exteriors, centroid_coords).astype(np.int32)
+        if len(interiors) > 0:
+            interiors = interiors.transpose((1,2))
+            interiors = np.apply_along_axis(int_coord, 2, interiors, centroid_coords).astype(np.int32)
+        return exteriors, interiors
+
+
     def get_tile_annot_mask(self, img_id, location, size, downsample_level = 0, multilabel = False, class_filter = None):
         ''' get tile annotations mask between (x|y) and (x + size| y + size)
 
@@ -199,16 +235,17 @@ class QuPathOperations(QuPathProject):
             # apply downsampling by scaling the Polygon down
             scale_inter = shapely.affinity.scale(trans_inter, xfact = 1/downsample_factor, yfact = 1/downsample_factor, origin = (0,0)) 
 
-            int_coords = lambda coords: np.array(coords).round().astype(np.int32)
-            exteriors = [int_coords(scale_inter.exterior.coords)]
-            interiors = [int_coords(poly.coords) for poly in scale_inter.interiors]
-                
+            # int_coords = lambda coords: np.array(coords).round().astype(np.int32)
+            # exteriors = [int_coords(scale_inter.exterior.coords)]
+            # interiors = [int_coords(scale_inter.interiors.coords)]
+            exteriors, interiors = self._round_polygon(scale_inter)
+
             if multilabel:
                 cv2.fillPoly(annot_mask[class_num], exteriors, 1)
                 cv2.fillPoly(annot_mask[class_num], interiors, 0)
 
             else:
-                cv2.fillPoly(annot_mask, exteriors, class_num)
+                cv2.fillPoly(annot_mask, [exteriors], class_num)
                 cv2.fillPoly(annot_mask, interiors, 0)
 
         return annot_mask
@@ -232,7 +269,7 @@ class QuPathOperations(QuPathProject):
             slide.hierarchy.add_annotation(poly_to_add, self._class_dict[annot_class])
 
 
-def merge_near_annotations(self, img_id, max_dist):
+    def merge_near_annotations(self, img_id, max_dist):
         ''' merge nearby annotations with equivalent annotation class
 
         Parameters:
