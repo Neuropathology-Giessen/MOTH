@@ -155,17 +155,9 @@ class QuPathOperations(QuPathProject):
 
         return tile_intersections
 
-    # def _coord_to_intcoords(self, coord, centroid):
-    #     ''' get integer parsed coord for cood 
-        
-    #     '''
-    #     coord_greater_centroid = coord > centroid # save if coord x/y is grater then centroid x/y
-    #     coord_pixel_values = coord % 1
-    #     coord_pixel_value = np.where(coord_greater_centroid, coord_pixel_values, 1 - coord_pixel_values)
-
 
     def _round_polygon(self, polygon):
-        ''' round polygon coords to discreet values 
+        ''' round polygon coords to discrete values 
 
             Parameters:
                 polygon:    Polygon to round coords
@@ -175,21 +167,24 @@ class QuPathOperations(QuPathProject):
                 interior:   rounded interior coords
         '''
         exteriors = np.array(polygon.exterior.coords)
-        interiors = np.array([poly.coords.xy for poly in polygon.interiors])
         centroid_coords = np.array([polygon.centroid.x, polygon.centroid.y])
+
+        discrete_interiors = []
+        interior_polys = [poly for poly in polygon.interiors]
+        interior_centroids = [np.array([poly.centroid.x, poly.centroid.y]) for poly in interior_polys]
+        interiors_coord = [np.array(poly.coords) for poly in interior_polys]
+        
         int_coord = lambda coord, centroid_coords: np.where(
-            coord > centroid_coords,
-            np.round(coord) - 1,
-            # np.ceil(coord) if np.multiply(coord % 1) < 0.5
-            np.round(coord)
+           coord > centroid_coords,
+           np.round(coord) - 1,
+           np.round(coord)
         )
 
-        # np.multiply(coord % 1) < 0.5
         exteriors = np.apply_along_axis(int_coord, 1, exteriors, centroid_coords).astype(np.int32)
-        if len(interiors) > 0:
-            interiors = interiors.transpose((1,2))
-            interiors = np.apply_along_axis(int_coord, 2, interiors, centroid_coords).astype(np.int32)
-        return exteriors, interiors
+        if len(interior_polys) > 0:
+            for coords, centroid in zip(interiors_coord, interior_centroids):
+                discrete_interiors.append(np.apply_along_axis(int_coord, 1, coords, centroid).astype(np.int32))
+        return exteriors, discrete_interiors
 
 
     def get_tile_annot_mask(self, img_id, location, size, downsample_level = 0, multilabel = False, class_filter = None):
