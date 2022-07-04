@@ -45,13 +45,16 @@ class TestTileExport(unittest.TestCase):
     ''' test export related functions '''
     def setUp(self):
         self.qp_project = QuPathOperations(path = qupath_path, mode = 'r')
+        self.qp_project.update_image_paths(try_relative = True)
         with open(expected_mask_path, 'rb') as mask_file:
             expected_masks = pickle.load(mask_file)
         self.expected_singlemask = expected_masks[0]
         self.expected_multimask = expected_masks[1] 
 
     def test_get_tile(self):
-        pass # OpenSlide test
+        expected_tile = np.ones((50, 50, 4)) * 255
+        tile = self.qp_project.get_tile(0, (500, 500), (50, 50))
+        self.assertTrue(np.array_equal(expected_tile, tile))
         
     def test_get_tile_annot(self):
         # use custom annotation to know how the tiled annotation should look like
