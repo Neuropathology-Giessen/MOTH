@@ -65,12 +65,11 @@ class QuPathOperations(QuPathProject):
         self.img_annot_dict[img_id] = (img_ann_tree, class_by_id)
 
 
-    def get_tile(self, img_dir, img_id, location, size, downsample_level = 0):
+    def get_tile(self, img_id, location, size, downsample_level = 0):
         ''' get tile starting at x|y (slide level 0) with given size  
 
         Parameters:
 
-            img_dir:    directory containing the image
             img_id:     id of image to operate
             location:   (x, y) tuple containing coordinates for the top left pixel in the level 0 slide
             size:       (width, height) tuple containing the tile size
@@ -80,7 +79,7 @@ class QuPathOperations(QuPathProject):
             tile:   tile image 
         '''
         slide = self.images[img_id]
-        with openslide.open_slide(os.path.join(img_dir, slide.image_name)) as slide_data:
+        with openslide.open_slide(slide.uri.removeprefix('file://')) as slide_data:
             tile = slide_data.read_region(location, downsample_level, size)
         return(tile)
 
@@ -103,7 +102,7 @@ class QuPathOperations(QuPathProject):
         hier_data = slide.hierarchy.annotations
         location_x, location_y = location
         width, height = size
-        polygon_tile = Polygon(([location_x, location_y], [location_x + width - 1, location_y], [location_x + width - 1, location_y + height - 1], [location_x, location_y + height - 1]))
+        polygon_tile = Polygon(([location_x, location_y], [location_x + width, location_y], [location_x + width, location_y + height], [location_x, location_y + height]))
         tile_intersections = []
 
         if img_id in self.img_annot_dict:
