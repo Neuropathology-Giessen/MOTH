@@ -1,11 +1,14 @@
 - [QuPath tiling python](#qupath-tiling-python)
   - [Installation](#installation)
+    - [Docker](#docker)
+    - [Virtual Environment](#virtual-environment)
   - [QuPathOperations API](#qupathoperations-api)
 
 # QuPath tiling python
 
 ## Installation
-1. 
+### Docker
+### Virtual Environment
 
 ## QuPathOperations API
 This proect inherits from [paquo](https://github.com/bayer-science-for-a-better-life/paquo) [(docs)](https://paquo.readthedocs.io/en/latest/).
@@ -27,12 +30,10 @@ This proect inherits from [paquo](https://github.com/bayer-science-for-a-better-
 >> - img_id:  
     &emsp;  id of image to operate
 
-> `get_tile(img_dir, img_id, location, size, downsample_level = 0)`
+> `get_tile(img_id, location, size, downsample_level = 0)`
 >> **get tile starting at x|y (slide level 0) with given size**
 >>
 >> Parameters:
->> - img_dir:  
-    &emsp;  directory containing the image
 >> - img_id:  
     &emsp;  id of image to operate
 >> - location:    
@@ -41,7 +42,7 @@ This proect inherits from [paquo](https://github.com/bayer-science-for-a-better-
     &emsp;  (width, height) tuple containing the tile size
 >> - downsample_level:  
     &emsp;  level for downsampling
-
+>>
 >> Returns:
 >> - tile:  
     &emsp;  tile image
@@ -59,7 +60,7 @@ This proect inherits from [paquo](https://github.com/bayer-science-for-a-better-
 >> - class_filter:  
     &emsp;  list of annotationclass names or ids to filter by  
     &emsp;  if None no filter is applied
-
+>>
 >> Returns:
 >> - tile_intersections:  
     &emsp;  list of annotations (shapely polygons) in tile
@@ -80,7 +81,7 @@ This proect inherits from [paquo](https://github.com/bayer-science-for-a-better-
     &emsp;  if True annotation mask contains boolean image for each class ([num_classes, width, height])
 >> - class_filter:  
     &emsp;  list of annotationclass names to filter by  
-
+>>
 >> Returns:  
 >> - annot_mask:  
     &emsp;  mask [height, width] with an annotation class for each pixel  
@@ -126,7 +127,7 @@ This proect inherits from [paquo](https://github.com/bayer-science-for-a-better-
     &emsp;  minimal area for polygons to be saved
 >> - multilabel:  
     &emsp;  if True annotation mask contains boolean image for each class ([num_classes, width, height])
-
+>>
 >> Returns:  
 >> - poly_labels:  
     &emsp;  list of Polygon and label tuple [(polygon, label), ...]
