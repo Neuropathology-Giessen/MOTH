@@ -154,8 +154,8 @@ class QuPathOperations(QuPathProject):
 
         return tile_intersections
 
-
-    def _round_polygon(self, polygon):
+    @classmethod
+    def _round_polygon(cls, polygon, export = True):
         ''' round polygon coords to discrete values 
 
             Parameters:
@@ -173,11 +173,18 @@ class QuPathOperations(QuPathProject):
         interior_centroids = [np.array([poly.centroid.x, poly.centroid.y]) for poly in interior_polys]
         interiors_coord = [np.array(poly.coords) for poly in interior_polys]
         
-        int_coord = lambda coord, centroid_coords: np.where(
-           coord > centroid_coords,
-           np.round(coord) - 1,
-           np.round(coord)
-        )
+        if export:
+            int_coord = lambda coord, centroid_coords: np.where(
+            coord > centroid_coords,
+            np.round(coord) - 1,
+            np.round(coord)
+            )
+        else:
+            int_coord = lambda coord, centroid_coords: np.where(
+            coord > centroid_coords,
+            np.round(coord) + 1,
+            np.round(coord)
+            )
 
         exteriors = np.apply_along_axis(int_coord, 1, exteriors, centroid_coords).astype(np.int32)
         if len(interior_polys) > 0:
@@ -229,9 +236,6 @@ class QuPathOperations(QuPathProject):
             # apply downsampling by scaling the Polygon down
             scale_inter = shapely.affinity.scale(trans_inter, xfact = 1/downsample_factor, yfact = 1/downsample_factor, origin = (0,0)) 
 
-            # int_coords = lambda coords: np.array(coords).round().astype(np.int32)
-            # exteriors = [int_coords(scale_inter.exterior.coords)]
-            # interiors = [int_coords(scale_inter.interiors.coords)]
             exteriors, interiors = self._round_polygon(scale_inter)
 
             if multilabel:
@@ -363,6 +367,8 @@ class QuPathOperations(QuPathProject):
                 
                 if child_id == -1:
                     poly = Polygon(contours[current_id])
+                    exterior, interior = cls._round_polygon(poly, export = False)
+                    poly = Polygon(exterior, interior)
                 else:
                     holes = []
                     hole_poly = Polygon(contours[child_id]).buffer(
@@ -387,6 +393,8 @@ class QuPathOperations(QuPathProject):
                         )))
                         next_child_id = hierarchy[0][next_child_id][0]
                     poly = Polygon(contours[current_id], holes)
+                    exterior, interior = cls._round_polygon(poly, export = False)
+                    poly = Polygon(exterior, interior)
 
                 poly = shapely.affinity.scale(poly, xfact = 1*downsample_factor, yfact = 1*downsample_factor, origin = (0,0))
                 if not poly.is_valid:
