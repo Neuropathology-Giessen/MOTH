@@ -239,7 +239,7 @@ class QuPathOperations(QuPathProject):
             exteriors, interiors = self._round_polygon(scale_inter)
 
             if multilabel:
-                cv2.fillPoly(annot_mask[class_num], exteriors, 1)
+                cv2.fillPoly(annot_mask[class_num], [exteriors], 1)
                 cv2.fillPoly(annot_mask[class_num], interiors, 0)
 
             else:

@@ -59,14 +59,14 @@ class TestTileExport(unittest.TestCase):
     def test_get_tile_annot(self):
         # use custom annotation to know how the tiled annotation should look like
         expected_polygons = [
-            Polygon([(510, 549),
-                     (549, 549),
-                     (549, 500),
+            Polygon([(510, 550),
+                     (550, 550),
+                     (550, 500),
                      (510, 500)]),
             Polygon([(510, 510),
                      (500, 510),
-                     (500, 549),
-                     (510, 549)])
+                     (500, 550),
+                     (510, 550)])
         ]
         tile_instersections = self.qp_project.get_tile_annot(0, (500, 500), (50, 50))
         polys = [intersection[1] for intersection in tile_instersections]
@@ -103,15 +103,15 @@ class TestTileImport(unittest.TestCase):
         # check for correct polygons
         expected_polygons = [
             Polygon([[10, 0],
-                     [10, 8],
-                     [12, 10],
-                     [12, 48],
-                     [48, 48],
-                     [48, 0],
+                     [10, 10],
+                     [10, 10],
+                     [10, 50],
+                     [50, 50],
+                     [50, 0],
                      [10, 0]]),
             Polygon([[0, 10],
-                     [0, 48],
-                     [10, 48],
+                     [0, 50],
+                     [10, 50],
                      [10, 10],
                      [0, 10]])
         ]
