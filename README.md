@@ -1,20 +1,40 @@
 - [QuPath tiling python](#qupath-tiling-python)
-  - [Installation](#installation)
-    - [Docker](#docker)
-    - [Virtual Environment](#virtual-environment)
-  - [QuPathOperations API](#qupathoperations-api)
+- [Installation](#installation)
+  - [Docker](#docker)
+    - [User permissions error (linux)](#user-permissions-error-linux)
+  - [Virtual Environment](#virtual-environment)
+- [QuPathOperations API](#qupathoperations-api)
 
 # QuPath tiling python
 
-## Installation
-### Docker
-### Virtual Environment
+# Installation
+1. clone repository
+2. follow [Docker](#docker) or [Virtual Environment](#virtual-environment) steps
+3. open python, import and use the modul
 
-## QuPathOperations API
+## Docker
+1. navigate in project base dir (contains setup.py/ DOCKERFILE)
+2. `docker build [-t QuPathTileOperation] .`
+3. `dokcer run -it QuPathTileOperationContainer /bin/bash`
+4. now you should be connected to the Docker Container
+
+### User permissions error (linux)
+If you have problems interacting with new QuPath projects, add your user to Docker.   
+To add your user, append your Dockerfile by `RUN useradd -u [your_user_id] [username]`
+
+
+## Virtual Environment
+1. create/ start your [virtual enviroment](https://docs.python.org/3/library/venv.html)
+2. navigate in project base dir (contains setup.py/ DOCKERFILE)
+3. run `pip install -e .`
+4. package should now be useable
+
+
+# QuPathOperations API
 This proect inherits from [paquo](https://github.com/bayer-science-for-a-better-life/paquo) [(docs)](https://paquo.readthedocs.io/en/latest/).
 
 `QuPathOperations`  
-> **class to initialize object (paquo)** 
+> **class to access qupath project (inherits from [QuPathProject](https://paquo.readthedocs.io/en/latest/api.html#paquo.projects.QuPathProject) (paquo))** 
 
 > `update_path_classes(path_classes)`  
 >> **update the annotation classes and annotation dictionaries of the project**  
