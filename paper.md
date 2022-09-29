@@ -11,6 +11,8 @@ authors:
     affiliation: 1
   - name: Jannik Sehring
     affiliation: 1
+  - name: Kai Schmid
+    affiliation: 1
   - name: Till Acker
     affiliation: 1
   - name: Daniel Amsel
