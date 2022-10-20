@@ -6,15 +6,21 @@
 Welcome to MOTH's documentation!
 ================================
 
+moth (**M**\emory-efficient **O**\n-the-fly **T**\iling of **H**\istological images using QuPath) is a 
+`Python <https://www.python.org/>`_ 
+library extending the funcionalities of 
+`paquo <https://github.com/bayer-science-for-a-better-life/paquo>`_. 
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
+   installation
+   api
 
+.. Indices and tables
+   ==================
 
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   * :ref:`genindex`
+   * :ref:`modindex`
+   * :ref:`search`
