@@ -1,3 +1,14 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 
-setup(name = 'qp_tiling', version = '0.1', packages = ['qp_tiling'])
+setup(
+    name = 'moth',
+    version = '0.1',
+    packages = ['moth'],
+    install_requires = [
+        'tifffile',
+        'shapely',
+        'paquo',
+        'opencv-python',
+        'numpy',
+        'openslide-python'
+    ])
