@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(
-    packages = ['moth'],
+    packages = ['mothi'],
     install_requires = [
         'tifffile',
         'shapely',

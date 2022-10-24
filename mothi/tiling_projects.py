@@ -25,7 +25,6 @@ class QuPathTilingProject(QuPathProject):
                 'a' = 'a+' --> read/write, create if not there, append if there
                 'w' = 'w+' --> read/write, create if not there, truncate if there
                 'x' = 'x+' --> read/write, create if not there, error if there
-
         '''
         super().__init__(path, mode)
         self._class_dict = {}
