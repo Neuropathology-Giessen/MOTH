@@ -9,14 +9,21 @@ from shapely.geometry import Polygon, CAP_STYLE, JOIN_STYLE
 def label_img_to_polys(label_img, downsample_level = 0, min_polygon_area = 0, multilabel = False):
     ''' convert label mask to list of Polygons
 
-    Parameters:
-        label_img:          mask [H, W] with values between 0 and highest label class
-        downsample_level:   level for downsampling
-        min_polygon_area:   minimal area for polygons to be saved
-        multilabel:         if True annotation mask contains boolean image for each class ([num_classes, width, height])
+    Parameters
+    ----------
+        label_img:
+            mask [H, W] with values between 0 and highest label class
+        downsample_level:
+            level for downsampling
+        min_polygon_area:
+            minimal area for polygons to be saved
+        multilabel:
+            if True annotation mask contains boolean image for each class ([num_classes, width, height])
 
-    Returns:
-        poly_labels: list of Polygon and label tuple [(polygon, label), ...]
+    Returns
+    -------
+        poly_labels: _ 
+            list of Polygon and label tuple [(polygon, label), ...]
     '''
     downsample_factor = 2 ** downsample_level
     label_img = label_img.astype(np.uint8)

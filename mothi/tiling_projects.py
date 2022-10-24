@@ -15,16 +15,16 @@ class QuPathTilingProject(QuPathProject):
     def __init__(self, path, mode = 'r'):
         ''' load or create a new qupath project
 
-        Parameters:
-
-            path:
-                path to `project.qpproj` file, or its parent directory
-            mode:
-                'r' --> readonly, error if not there
-                'r+' --> read/write, error if not there
-                'a' = 'a+' --> read/write, create if not there, append if there
-                'w' = 'w+' --> read/write, create if not there, truncate if there
-                'x' = 'x+' --> read/write, create if not there, error if there
+        Parameters
+        ----------
+        path:
+            path to `project.qpproj` file, or its parent directory
+        mode:
+            'r' --> readonly, error if not there
+            'r+' --> read/write, error if not there
+            'a' = 'a+' --> read/write, create if not there, append if there
+            'w' = 'w+' --> read/write, create if not there, truncate if there
+            'x' = 'x+' --> read/write, create if not there, error if there
         '''
         super().__init__(path, mode)
         self._class_dict = {}
@@ -37,8 +37,10 @@ class QuPathTilingProject(QuPathProject):
     def update_path_classes(self, path_classes):
         ''' update the annotation classes and annotation dictionaries of the project
         
-        Parameters:
-            path_classes: annotation classes to set
+        Parameters
+        ----------
+        path_classes: 
+            annotation classes to set
         '''
         self.path_classes = path_classes
         self._class_dict = {}
@@ -50,8 +52,10 @@ class QuPathTilingProject(QuPathProject):
     def update_img_annot_dict(self, img_id):
         ''' update annotation rois tree for faster shapely queries
 
-        Parameters:
-            img_id:     id of image to operate
+        Parameters
+        ----------
+        img_id:
+            id of image to operate
         '''
         slide = self.images[img_id]
         annotations = slide.hierarchy.annotations
@@ -66,15 +70,21 @@ class QuPathTilingProject(QuPathProject):
     def get_tile(self, img_id, location, size, downsample_level = 0):
         ''' get tile starting at x|y (slide level 0) with given size  
 
-        Parameters:
+        Parameters
+        ----------
+        img_id:
+            id of image to operate
+        location:
+            (x, y) tuple containing coordinates for the top left pixel in the level 0 slide
+        size:
+            (width, height) tuple containing the tile size
+        downsample_level:
+            level for downsampling
 
-            img_id:     id of image to operate
-            location:   (x, y) tuple containing coordinates for the top left pixel in the level 0 slide
-            size:       (width, height) tuple containing the tile size
-            downsample_level: level for downsampling
-
-        Returns:
-            tile:   tile image 
+        Returns
+        -------
+        tile: _
+            tile image
         '''
         slide = self.images[img_id]
         with openslide.open_slide(slide.uri.removeprefix('file://')) as slide_data:
@@ -85,16 +95,22 @@ class QuPathTilingProject(QuPathProject):
     def get_tile_annot(self, img_id, location, size, class_filter = None):
         ''' get tile annotations between (x|y) and (x + size| y + size)
 
-        Parameters:
+        Parameters
+        ----------
+        img_id:
+            id of image to operate
+        location:
+            (x, y) tuple containing coordinates for the top left pixel in the level 0 slide
+        size:
+            (width, height) tuple containing the tile size
+        class_filter:
+            list of annotationclass names or ids to filter by
+            if None no filter is applied
 
-            img_id:     id of image to operate
-            location:   (x, y) tuple containing coordinates for the top left pixel in the level 0 slide
-            size:       (width, height) tuple containing the tile size
-            class_filter:   list of annotationclass names or ids to filter by
-                            if None no filter is applied
-
-        Returns:
-            tile_intersections: list of annotations (shapely polygons) in tile
+        Returns
+        -------
+        tile_intersections: _
+            list of annotations (shapely polygons) in tile
         '''
         slide = self.images[img_id]
         hier_data = slide.hierarchy.annotations
@@ -156,19 +172,27 @@ class QuPathTilingProject(QuPathProject):
     def get_tile_annot_mask(self, img_id, location, size, downsample_level = 0, multilabel = False, class_filter = None):
         ''' get tile annotations mask between (x|y) and (x + size| y + size)
 
-        Parameters:
+        Parameters
+        ----------
+        img_id:
+            id of image to operate
+        location:
+            (x, y) tuple containing coordinates for the top left pixel in the level 0 slide
+        size:
+            (width, height) tuple containing the tile size
+        downsample_level:
+            level for downsampling
+        multilabel:
+            if True annotation mask contains boolean image for each class ([num_classes, width, height])
+        class_filter:
+            list of annotationclass names to filter by
 
-            img_id:     id of image to operate
-            location:   (x, y) tuple containing coordinates for the top left pixel in the level 0 slide
-            size:       (width, height) tuple containing the tile size
-            downsample_level: level for downsampling
-            multilabel: if True annotation mask contains boolean image for each class ([num_classes, width, height])
-            class_filter:   list of annotationclass names to filter by
-
-        Returns:
-            annot_mask: mask [height, width] with an annotation class for each pixel
-                        or [num_class, height, width] for multilabels
-                        background class is ignored for multilabels ([0, height, width] shows mask for the first annotation class)
+        Returns
+        -------
+        annot_mask: _
+            mask [height, width] with an annotation class for each pixel
+            or [num_class, height, width] for multilabels
+            background class is ignored for multilabels ([0, height, width] shows mask for the first annotation class)
         '''
         location_x, location_y = location
         width, height = size
@@ -212,13 +236,20 @@ class QuPathTilingProject(QuPathProject):
     def save_mask_annotations(self, img_id, annot_mask, location = (0,0), downsample_level = 0, min_polygon_area = 0, multilabel = False):
         ''' saves a mask as annotations to QuPath
 
-        Parameters:
-            img_id:             id of image to operate
-            annot_mask:         mask with annotations
-            location:           (x, y) tuple containing coordinates for the top left pixel in the level 0 slide
-            downsample_level:   level for downsampling
-            min_polygon_area:   minimal area for polygons to be saved
-            multilabel:         if True annotation mask contains boolean image for each class ([num_classes, width, height])
+        Parameters
+        ----------
+        img_id:
+            id of image to operate
+        annot_mask:
+            mask with annotations
+        location:
+            (x, y) tuple containing coordinates for the top left pixel in the level 0 slide
+        downsample_level:
+            level for downsampling
+        min_polygon_area:
+            minimal area for polygons to be saved
+        multilabel:
+            if True annotation mask contains boolean image for each class ([num_classes, width, height])
         '''
         slide = self.images[img_id]
         poly_annot_list = label_img_to_polys(annot_mask, downsample_level, min_polygon_area, multilabel)
@@ -230,9 +261,12 @@ class QuPathTilingProject(QuPathProject):
     def merge_near_annotations(self, img_id, max_dist):
         ''' merge nearby annotations with equivalent annotation class
 
-        Parameters:
-            img_id:     id of image to operate
-            max_dist:   maximal distance between annotations to merge
+        Parameters
+        ----------
+        img_id:
+            id of image to operate
+        max_dist:
+            maximal distance between annotations to merge
         '''
         hierarchy = self.images[img_id].hierarchy
         annotations = hierarchy.annotations

@@ -1,22 +1,22 @@
-# vscode
+# VsCode
 .vscode
 
 # QuPath installation
 QuPath
 config
 
-# untracked files
+# Untracked files
 first_steps.ipynb
 test_class.ipynb
 
-# data
+# Data
 Qupath_data
 test_project
 test/qp_project
 test/test_for_tests.ipynb
 workflow/data
 
-# docker
+# Docker
 .devcontainer
 
 # Byte-compiled / optimized / DLL files
