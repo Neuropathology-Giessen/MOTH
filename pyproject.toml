@@ -4,12 +4,12 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "moth"
-version = "0.0.6"
+name = "mothi"
+version = "0.0.1"
 authors = [
   { name="Example Author", email="author@example.com" },
 ]
-description = "A small example package"
+description = "mothi example"
 readme = "README.md"
 requires-python = ">=3.7"
 classifiers = [
