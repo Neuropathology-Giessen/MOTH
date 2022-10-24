@@ -1,7 +1,14 @@
 Moth API
 ========
 
-At the moment `moth` only contains :class:`QuPathOperations`
+At the moment `mothi` contains :class:`QuPathTilingProject` and utils
 
-.. autoclass:: moth.tile_class.QuPathOperations
+QuPathTilingProject
+-------------------
+.. autoclass:: mothi.tiling_projects.QuPathTilingProject
+    :members:
+
+utils
+-----
+.. automodule:: mothi.utils
     :members:
