@@ -1,8 +1,9 @@
 import pathlib
+import os
+import platform
 from typing import Union, Literal, Iterable, Dict, Tuple
 
 import numpy as np
-import openslide
 import cv2
 from shapely import affinity
 from shapely.geometry import Polygon, MultiPolygon, GeometryCollection
@@ -13,14 +14,19 @@ from paquo.projects import QuPathProject
 from paquo.classes import QuPathPathClass
 from mothi.utils import label_img_to_polys, _round_polygon
 
+# import openSlide (https://openslide.org/api/python/#installing)
+OPENSLIDE_PATH = 'C:\\Program Files\\openslide-win64-20220811\\bin'
+if hasattr(os, 'add_dll_directory'):
+    # Python >= 3.8 on Windows
+    with os.add_dll_directory(OPENSLIDE_PATH):
+        import openslide
+else:
+    import openslide
 
 ProjectIOMode = Literal["r", "r+", "w", "w+", "a", "a+", "x", "x+"]
 
 class QuPathTilingProject(QuPathProject):
-    def __init__(self,
-                 path: Union[str, pathlib.Path],
-                 mode: ProjectIOMode  = 'r'):
-        ''' load or create a new qupath project
+    ''' load or create a new qupath project
 
         Parameters
         ----------
@@ -33,12 +39,17 @@ class QuPathTilingProject(QuPathProject):
             'w' = 'w+' --> read/write, create if not there, truncate if there
             'x' = 'x+' --> read/write, create if not there, error if there
         '''
+    def __init__(self,
+                 path: Union[str, pathlib.Path],
+                 mode: ProjectIOMode  = 'r'):
         self._class_dict: Dict[int, str] = {}
 
         super().__init__(path, mode)
         for i, ann in enumerate(self.path_classes):
             self._class_dict[i] = ann.id
-        self._inverse_class_dict: Dict[str, int] = {value: key for key, value in self._class_dict.items()}
+        self._inverse_class_dict: Dict[str, int] = {
+            value: key for key, value in self._class_dict.items()
+        }
 
         ## create dictonary to handle one Strtree per image
         # {img_id: (annotationTree, {roi_id: (annotation_id, path_class)})}
@@ -60,8 +71,8 @@ class QuPathTilingProject(QuPathProject):
         # overwrite _class_dict and _inverse_class_dict
         self._class_dict = {}
         for i, ann in enumerate(self.path_classes):
-            self._class_dict[i] = ann
-        self._inverse_class_dict = {value.id: key for key, value in self._class_dict.items()}
+            self._class_dict[i] = ann.id
+        self._inverse_class_dict = {value: key for key, value in self._class_dict.items()}
 
 
     def update_img_annot_dict(self, img_id: int) -> None:
@@ -76,8 +87,12 @@ class QuPathTilingProject(QuPathProject):
         annotations = slide.hierarchy.annotations
         img_ann_list = [(annot.roi, annot.path_class.id) for annot in annotations]
 
-        img_ann_transposed = np.array(img_ann_list, dtype = object).transpose() # [list(rois), list(annot_classes)]
-        class_by_id = dict((id(ann_poly), (i, img_ann_transposed[1][i])) for i, ann_poly in enumerate(img_ann_transposed[0]))
+        # [list(rois), list(annot_classes)]
+        img_ann_transposed = np.array(img_ann_list, dtype = object).transpose()
+        class_by_id = dict(
+            (id(ann_poly), (i, img_ann_transposed[1][i]))
+            for i, ann_poly in enumerate(img_ann_transposed[0])
+        )
         img_ann_tree = STRtree(img_ann_transposed[0])
         self.img_annot_dict[img_id] = (img_ann_tree, class_by_id)
 
@@ -102,7 +117,11 @@ class QuPathTilingProject(QuPathProject):
             tile image
         '''
         slide = self.images[img_id]
-        with openslide.open_slide(slide.uri.removeprefix('file://')) as slide_data:
+        slide_url = slide.uri.removeprefix('file://')
+        # remove leading '/' on windows systems '/C:/...' -> 'C:/...'
+        if platform.system() == 'Windows':
+            slide_url = slide_url.removeprefix('/')
+        with openslide.open_slide(slide_url) as slide_data:
             tile = slide_data.read_region(location, downsample_level, size)
         return tile
 
@@ -131,7 +150,12 @@ class QuPathTilingProject(QuPathProject):
         hier_data = slide.hierarchy.annotations
         location_x, location_y = location
         width, height = size
-        polygon_tile = Polygon(([location_x, location_y], [location_x + width, location_y], [location_x + width, location_y + height], [location_x, location_y + height]))
+        polygon_tile = Polygon((
+            [location_x, location_y],
+            [location_x + width, location_y],
+            [location_x + width, location_y + height],
+            [location_x, location_y + height]
+        ))
         tile_intersections = []
 
         if img_id in self.img_annot_dict:
@@ -143,9 +167,14 @@ class QuPathTilingProject(QuPathProject):
                 if intersection.is_empty:
                     continue
 
-                filter_bool = (not class_filter) or (annot_class in class_filter) or (self._inverse_class_dict[annot_class] in class_filter)
+                filter_bool = ((not class_filter) or
+                    (annot_class in class_filter) or
+                    (self._inverse_class_dict[annot_class] in class_filter))
 
-                if filter_bool and (isinstance(intersection, MultiPolygon) or isinstance(intersection, GeometryCollection)): # filter applies and polygon is a multipolygon
+                # filter applies and polygon is a multipolygon
+                if (filter_bool and
+                        (isinstance(intersection, MultiPolygon) or
+                        isinstance(intersection, GeometryCollection))):
                     for inter in intersection.geoms:
                         if isinstance(inter, Polygon):
                             tile_intersections.append((annot_class, inter))
@@ -160,15 +189,21 @@ class QuPathTilingProject(QuPathProject):
                     continue
                 annot_class = annot.path_class.id
                 polygon_annot = annot.roi
-                img_ann_list.append((polygon_annot, annot_class)) # save all Polygons in list to create a cache.
+                # save all Polygons in list to create a cache.
+                img_ann_list.append((polygon_annot, annot_class))
 
                 intersection = polygon_annot.intersection(polygon_tile)
                 if intersection.is_empty:
                     continue
 
-                filter_bool = (not class_filter) or (annot_class in class_filter) or (self._inverse_class_dict[annot_class] in class_filter)
+                filter_bool = ((not class_filter)
+                    or (annot_class in class_filter)
+                    or (self._inverse_class_dict[annot_class] in class_filter))
 
-                if filter_bool and (isinstance(intersection, MultiPolygon) or isinstance(intersection, GeometryCollection)): # filter applies and polygon is a multipolygon
+                 # filter applies and polygon is a multipolygon
+                if (filter_bool and
+                    (isinstance(intersection, MultiPolygon) or
+                    isinstance(intersection, GeometryCollection))):
                     for inter in intersection.geoms:
                         if isinstance(inter, Polygon):
                             tile_intersections.append((annot_class, inter))
@@ -176,15 +211,19 @@ class QuPathTilingProject(QuPathProject):
                 elif filter_bool: # filter applies and is not a multipolygon
                     tile_intersections.append((annot_class, intersection))
 
-            img_ann_transposed = np.array(img_ann_list, dtype = object).transpose() # [list(rois), list(annotation_classes)]
-            class_by_id = dict((id(ann_poly), (i, img_ann_transposed[1][i])) for i, ann_poly in enumerate(img_ann_transposed[0]))
+            # [list(rois), list(annotation_classes)]
+            img_ann_transposed = np.array(img_ann_list, dtype = object).transpose()
+            class_by_id = dict(
+                (id(ann_poly), (i, img_ann_transposed[1][i]))
+                for i, ann_poly in enumerate(img_ann_transposed[0])
+            )
             img_ann_tree = STRtree(img_ann_transposed[0])
             self.img_annot_dict[img_id] = (img_ann_tree, class_by_id)
 
         return tile_intersections
 
 
-    def get_tile_annot_mask(self, img_id, location, size, downsample_level = 0, multilabel = False, class_filter = None):
+    def get_tile_annot_mask(self, img_id, location, size, downsample_level=0, multilabel = False, class_filter = None):
         ''' get tile annotations mask between (x|y) and (x + size| y + size)
 
         Parameters
@@ -212,7 +251,8 @@ class QuPathTilingProject(QuPathProject):
         location_x, location_y = location
         width, height = size
         downsample_factor = 2 ** downsample_level
-        level_0_size = map(lambda x: x* downsample_factor, size) # level_0_size needed to get all Polygons in downsampled area
+        # level_0_size needed to get all Polygons in downsampled area
+        level_0_size = map(lambda x: x* downsample_factor, size)
         tile_intersections = self.get_tile_annot(img_id, location, level_0_size, class_filter)
 
         if multilabel:
@@ -220,8 +260,11 @@ class QuPathTilingProject(QuPathProject):
             annot_mask = np.zeros((num_classes, height, width), dtype = np.uint8)
 
         else:
-            # sort intersections descending by area. Now we can not accidentally overwrite polys with other poly holes
-            sorted_intersections = sorted(tile_intersections, key = lambda tup: Polygon(tup[1].exterior).area, reverse=True)
+            # sort intersections descending by area.
+            # Now we can not accidentally overwrite polys with other poly holes
+            sorted_intersections = sorted(tile_intersections,
+                                          key = lambda tup: Polygon(tup[1].exterior).area,
+                                          reverse=True)
             tile_intersections = sorted_intersections
             annot_mask = np.zeros((height, width), dtype = np.uint8)
 
@@ -233,7 +276,12 @@ class QuPathTilingProject(QuPathProject):
 
             trans_inter = affinity.translate(intersection, location_x * -1, location_y * -1)
             # apply downsampling by scaling the Polygon down
-            scale_inter = affinity.scale(trans_inter, xfact = 1/downsample_factor, yfact = 1/downsample_factor, origin = (0,0))
+            scale_inter = affinity.scale(
+                trans_inter,
+                xfact = 1/downsample_factor,
+                yfact = 1/downsample_factor,
+                origin = (0,0)
+            )
 
             exteriors, interiors = _round_polygon(scale_inter)
 
@@ -267,7 +315,10 @@ class QuPathTilingProject(QuPathProject):
             if True annotation mask contains boolean image for each class ([num_classes, width, height])
         '''
         slide = self.images[img_id]
-        poly_annot_list = label_img_to_polys(annot_mask, downsample_level, min_polygon_area, multilabel)
+        poly_annot_list = label_img_to_polys(annot_mask,
+                                             downsample_level,
+                                             min_polygon_area,
+                                             multilabel)
         for annot_poly, annot_class in poly_annot_list:
             poly_to_add = affinity.translate(annot_poly, location[0], location[1])
             slide.hierarchy.add_annotation(poly_to_add, self._class_dict[annot_class])
@@ -311,7 +362,8 @@ class QuPathTilingProject(QuPathProject):
 
                     if near_poly_index in already_merged:
                         continue
-                    if index == near_poly_index: # tree query will always return the polygon from the same annotation
+                    # tree query will always return the polygon from the same annotation
+                    if index == near_poly_index:
                         continue
                     if annot_poly_class != near_poly_annotation_class:
                         continue
@@ -325,5 +377,8 @@ class QuPathTilingProject(QuPathProject):
 
             if len(annotations_to_merge) > 1:
                 merged_annot = unary_union(annotations_to_merge).buffer(-max_dist)
-                hierarchy.add_annotation(merged_annot, self._class_dict[self._inverse_class_dict[annot_poly_class]])
+                hierarchy.add_annotation(
+                    merged_annot,
+                    self._class_dict[self._inverse_class_dict[annot_poly_class]]
+                )
                 annotations.discard(annot)
