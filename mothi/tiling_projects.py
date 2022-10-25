@@ -1,18 +1,25 @@
+import pathlib
+from typing import Union, Literal, Iterable, Dict, Tuple
+
 import numpy as np
-import shapely
 import openslide
 import cv2
-
+from shapely import affinity
 from shapely.geometry import Polygon, MultiPolygon, GeometryCollection
 from shapely.strtree import STRtree
 from shapely.ops import unary_union
 
 from paquo.projects import QuPathProject
+from paquo.classes import QuPathPathClass
 from mothi.utils import label_img_to_polys, _round_polygon
 
 
+ProjectIOMode = Literal["r", "r+", "w", "w+", "a", "a+", "x", "x+"]
+
 class QuPathTilingProject(QuPathProject):
-    def __init__(self, path, mode = 'r'):
+    def __init__(self,
+                 path: Union[str, pathlib.Path],
+                 mode: ProjectIOMode  = 'r'):
         ''' load or create a new qupath project
 
         Parameters
@@ -26,30 +33,38 @@ class QuPathTilingProject(QuPathProject):
             'w' = 'w+' --> read/write, create if not there, truncate if there
             'x' = 'x+' --> read/write, create if not there, error if there
         '''
+        self._class_dict: Dict[int, str] = {}
+
         super().__init__(path, mode)
-        self._class_dict = {}
         for i, ann in enumerate(self.path_classes):
-            self._class_dict[i] = ann
-        self._inverse_class_dict = {value.id: key for key, value in self._class_dict.items()}
-        self.img_annot_dict = {}
+            self._class_dict[i] = ann.id
+        self._inverse_class_dict: Dict[str, int] = {value: key for key, value in self._class_dict.items()}
+
+        ## create dictonary to handle one Strtree per image
+        # {img_id: (annotationTree, {roi_id: (annotation_id, path_class)})}
+        # each image has an own query tree
+        # roi's in the tree are identified by their id
+        # each roi_id has it's own enumerated annotation_id and path_class
+        self.img_annot_dict: Dict[int, Tuple[STRtree, Dict[int, Tuple[int, str]]]] = {}
 
 
-    def update_path_classes(self, path_classes):
+    def update_path_classes(self, path_classes: Iterable[QuPathPathClass]) -> None:
         ''' update the annotation classes and annotation dictionaries of the project
-        
+
         Parameters
         ----------
-        path_classes: 
+        path_classes:
             annotation classes to set
         '''
         self.path_classes = path_classes
+        # overwrite _class_dict and _inverse_class_dict
         self._class_dict = {}
         for i, ann in enumerate(self.path_classes):
             self._class_dict[i] = ann
         self._inverse_class_dict = {value.id: key for key, value in self._class_dict.items()}
 
-    
-    def update_img_annot_dict(self, img_id):
+
+    def update_img_annot_dict(self, img_id: int) -> None:
         ''' update annotation rois tree for faster shapely queries
 
         Parameters
@@ -68,7 +83,7 @@ class QuPathTilingProject(QuPathProject):
 
 
     def get_tile(self, img_id, location, size, downsample_level = 0):
-        ''' get tile starting at x|y (slide level 0) with given size  
+        ''' get tile starting at x|y (slide level 0) with given size
 
         Parameters
         ----------
@@ -89,7 +104,7 @@ class QuPathTilingProject(QuPathProject):
         slide = self.images[img_id]
         with openslide.open_slide(slide.uri.removeprefix('file://')) as slide_data:
             tile = slide_data.read_region(location, downsample_level, size)
-        return(tile)
+        return tile
 
 
     def get_tile_annot(self, img_id, location, size, class_filter = None):
@@ -127,14 +142,14 @@ class QuPathTilingProject(QuPathProject):
                 intersection = poly.intersection(polygon_tile)
                 if intersection.is_empty:
                     continue
-                
+
                 filter_bool = (not class_filter) or (annot_class in class_filter) or (self._inverse_class_dict[annot_class] in class_filter)
 
                 if filter_bool and (isinstance(intersection, MultiPolygon) or isinstance(intersection, GeometryCollection)): # filter applies and polygon is a multipolygon
                     for inter in intersection.geoms:
                         if isinstance(inter, Polygon):
                             tile_intersections.append((annot_class, inter))
-                
+
                 elif filter_bool: # filter applies and is not a multipolygon
                     tile_intersections.append((annot_class, intersection))
 
@@ -151,7 +166,7 @@ class QuPathTilingProject(QuPathProject):
                 if intersection.is_empty:
                     continue
 
-                filter_bool = (not class_filter) or (annot_class in class_filter) or (self._inverse_class_dict[annot_class] in class_filter)  
+                filter_bool = (not class_filter) or (annot_class in class_filter) or (self._inverse_class_dict[annot_class] in class_filter)
 
                 if filter_bool and (isinstance(intersection, MultiPolygon) or isinstance(intersection, GeometryCollection)): # filter applies and polygon is a multipolygon
                     for inter in intersection.geoms:
@@ -196,12 +211,12 @@ class QuPathTilingProject(QuPathProject):
         '''
         location_x, location_y = location
         width, height = size
-        downsample_factor = 2 ** downsample_level 
+        downsample_factor = 2 ** downsample_level
         level_0_size = map(lambda x: x* downsample_factor, size) # level_0_size needed to get all Polygons in downsampled area
         tile_intersections = self.get_tile_annot(img_id, location, level_0_size, class_filter)
 
         if multilabel:
-            num_classes = len(self.path_classes) -1 
+            num_classes = len(self.path_classes) -1
             annot_mask = np.zeros((num_classes, height, width), dtype = np.uint8)
 
         else:
@@ -209,16 +224,16 @@ class QuPathTilingProject(QuPathProject):
             sorted_intersections = sorted(tile_intersections, key = lambda tup: Polygon(tup[1].exterior).area, reverse=True)
             tile_intersections = sorted_intersections
             annot_mask = np.zeros((height, width), dtype = np.uint8)
-        
+
 
         for inter_class, intersection in tile_intersections:
             class_num = self._inverse_class_dict[inter_class]
             if multilabel: # first class should be on the lowest level for multilabels
                 class_num -= 1
 
-            trans_inter = shapely.affinity.translate(intersection, location_x * -1, location_y * -1)
+            trans_inter = affinity.translate(intersection, location_x * -1, location_y * -1)
             # apply downsampling by scaling the Polygon down
-            scale_inter = shapely.affinity.scale(trans_inter, xfact = 1/downsample_factor, yfact = 1/downsample_factor, origin = (0,0)) 
+            scale_inter = affinity.scale(trans_inter, xfact = 1/downsample_factor, yfact = 1/downsample_factor, origin = (0,0))
 
             exteriors, interiors = _round_polygon(scale_inter)
 
@@ -254,7 +269,7 @@ class QuPathTilingProject(QuPathProject):
         slide = self.images[img_id]
         poly_annot_list = label_img_to_polys(annot_mask, downsample_level, min_polygon_area, multilabel)
         for annot_poly, annot_class in poly_annot_list:
-            poly_to_add = shapely.affinity.translate(annot_poly, location[0], location[1])
+            poly_to_add = affinity.translate(annot_poly, location[0], location[1])
             slide.hierarchy.add_annotation(poly_to_add, self._class_dict[annot_class])
 
 
@@ -303,7 +318,7 @@ class QuPathTilingProject(QuPathProject):
 
                     near_poly_buffered = near_poly.buffer(max_dist)
                     intersects = near_poly_buffered.intersects(annot_poly_buffered)
-                    if intersects:     
+                    if intersects:
                         annotations_to_merge.append(near_poly_buffered)
                         nested_annotations.append(near_poly_buffered)
                         already_merged.append(near_poly_index)
