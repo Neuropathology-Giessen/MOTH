@@ -158,67 +158,31 @@ class QuPathTilingProject(QuPathProject):
         ))
         tile_intersections = []
 
-        if img_id in self.img_annot_dict:
-            ann_tree, index_and_class = self.img_annot_dict[img_id]
-            near_polys = [poly for poly in ann_tree.query(polygon_tile)]
-            near_poly_classes = [index_and_class[id(poly)][1] for poly in near_polys]
-            for poly, annot_class in zip(near_polys, near_poly_classes):
-                intersection = poly.intersection(polygon_tile)
-                if intersection.is_empty:
-                    continue
+        if img_id not in self.img_annot_dict:
+            self.update_img_annot_dict(img_id)
 
-                filter_bool = ((not class_filter) or
-                    (annot_class in class_filter) or
-                    (self._inverse_class_dict[annot_class] in class_filter))
+        ann_tree, index_and_class = self.img_annot_dict[img_id]
+        near_polys = [poly for poly in ann_tree.query(polygon_tile)]
+        near_poly_classes = [index_and_class[id(poly)][1] for poly in near_polys]
+        for poly, annot_class in zip(near_polys, near_poly_classes):
+            intersection = poly.intersection(polygon_tile)
+            if intersection.is_empty:
+                continue
 
-                # filter applies and polygon is a multipolygon
-                if (filter_bool and
-                        (isinstance(intersection, MultiPolygon) or
-                        isinstance(intersection, GeometryCollection))):
-                    for inter in intersection.geoms:
-                        if isinstance(inter, Polygon):
-                            tile_intersections.append((annot_class, inter))
+            filter_bool = ((not class_filter) or
+                (annot_class in class_filter) or
+                (self._inverse_class_dict[annot_class] in class_filter))
 
-                elif filter_bool: # filter applies and is not a multipolygon
-                    tile_intersections.append((annot_class, intersection))
+            # filter applies and polygon is a multipolygon
+            if (filter_bool and
+                    isinstance(intersection, (MultiPolygon, GeometryCollection))):
+                for inter in intersection.geoms:
+                    if isinstance(inter, Polygon):
+                        tile_intersections.append((annot_class, inter))
 
-        else:
-            img_ann_list = []
-            for annot in hier_data:
-                if not annot.path_class:
-                    continue
-                annot_class = annot.path_class.id
-                polygon_annot = annot.roi
-                # save all Polygons in list to create a cache.
-                img_ann_list.append((polygon_annot, annot_class))
-
-                intersection = polygon_annot.intersection(polygon_tile)
-                if intersection.is_empty:
-                    continue
-
-                filter_bool = ((not class_filter)
-                    or (annot_class in class_filter)
-                    or (self._inverse_class_dict[annot_class] in class_filter))
-
-                 # filter applies and polygon is a multipolygon
-                if (filter_bool and
-                    (isinstance(intersection, MultiPolygon) or
-                    isinstance(intersection, GeometryCollection))):
-                    for inter in intersection.geoms:
-                        if isinstance(inter, Polygon):
-                            tile_intersections.append((annot_class, inter))
-
-                elif filter_bool: # filter applies and is not a multipolygon
-                    tile_intersections.append((annot_class, intersection))
-
-            # [list(rois), list(annotation_classes)]
-            img_ann_transposed = np.array(img_ann_list, dtype = object).transpose()
-            class_by_id = dict(
-                (id(ann_poly), (i, img_ann_transposed[1][i]))
-                for i, ann_poly in enumerate(img_ann_transposed[0])
-            )
-            img_ann_tree = STRtree(img_ann_transposed[0])
-            self.img_annot_dict[img_id] = (img_ann_tree, class_by_id)
+            # filter applies and is a polygon
+            elif filter_bool and isinstance(intersection, Polygon):
+                tile_intersections.append((annot_class, intersection))
 
         return tile_intersections
 
