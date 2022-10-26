@@ -1,17 +1,20 @@
 import pathlib
-import os
 import platform
-from typing import Union, Literal, Iterable, Dict, Tuple
+from typing import List, Dict, Tuple, Union, Literal, Iterable, Optional
 
 import numpy as np
 import cv2
+import openslide
 from shapely import affinity
 from shapely.geometry import Polygon, MultiPolygon, GeometryCollection
 from shapely.strtree import STRtree
 from shapely.ops import unary_union
+from PIL.Image import Image
 
 from paquo.projects import QuPathProject
 from paquo.classes import QuPathPathClass
+from paquo.images import QuPathProjectImageEntry
+from paquo.hierarchy import PathObjectProxy
 from mothi.utils import label_img_to_polys, _round_polygon
 
 # import openSlide (https://openslide.org/api/python/#installing)
@@ -42,13 +45,14 @@ class QuPathTilingProject(QuPathProject):
     def __init__(self,
                  path: Union[str, pathlib.Path],
                  mode: ProjectIOMode  = 'r'):
-        self._class_dict: Dict[int, str] = {}
-
         super().__init__(path, mode)
+        self._class_dict: Dict[int, QuPathPathClass] = {}
+        self._inverse_class_dict: Dict[str, int] = {}
+
         for i, ann in enumerate(self.path_classes):
-            self._class_dict[i] = ann.id
-        self._inverse_class_dict: Dict[str, int] = {
-            value: key for key, value in self._class_dict.items()
+            self._class_dict[i] = ann
+        self._inverse_class_dict = {
+            value.id: key for key, value in self._class_dict.items()
         }
 
         ## create dictonary to handle one Strtree per image
@@ -71,8 +75,8 @@ class QuPathTilingProject(QuPathProject):
         # overwrite _class_dict and _inverse_class_dict
         self._class_dict = {}
         for i, ann in enumerate(self.path_classes):
-            self._class_dict[i] = ann.id
-        self._inverse_class_dict = {value: key for key, value in self._class_dict.items()}
+            self._class_dict[i] = ann
+        self._inverse_class_dict = {value.id: key for key, value in self._class_dict.items()}
 
 
     def update_img_annot_dict(self, img_id: int) -> None:
@@ -83,21 +87,28 @@ class QuPathTilingProject(QuPathProject):
         img_id:
             id of image to operate
         '''
-        slide = self.images[img_id]
-        annotations = slide.hierarchy.annotations
-        img_ann_list = [(annot.roi, annot.path_class.id) for annot in annotations]
+        slide: QuPathProjectImageEntry = self.images[img_id]
+        annotations: PathObjectProxy = slide.hierarchy.annotations
+        img_ann_list: List[Tuple[Polygon, str]] = [
+            (annot.roi, annot.path_class.id)
+            for annot in annotations
+        ]
 
         # [list(rois), list(annot_classes)]
-        img_ann_transposed = np.array(img_ann_list, dtype = object).transpose()
-        class_by_id = dict(
+        img_ann_transposed: np.ndarray = np.array(img_ann_list, dtype = object).transpose()
+        class_by_id: Dict[int, Tuple[int, str]] = dict(
             (id(ann_poly), (i, img_ann_transposed[1][i]))
             for i, ann_poly in enumerate(img_ann_transposed[0])
         )
-        img_ann_tree = STRtree(img_ann_transposed[0])
+        img_ann_tree: STRtree = STRtree(img_ann_transposed[0])
         self.img_annot_dict[img_id] = (img_ann_tree, class_by_id)
 
 
-    def get_tile(self, img_id, location, size, downsample_level = 0):
+    def get_tile(self,
+                 img_id: int,
+                 location: Tuple[int, int],
+                 size: Tuple[int, int],
+                 downsample_level: Optional[int] = 0) -> Image:
         ''' get tile starting at x|y (slide level 0) with given size
 
         Parameters
@@ -113,20 +124,24 @@ class QuPathTilingProject(QuPathProject):
 
         Returns
         -------
-        tile: _
-            tile image
+        :
+            requested tile
         '''
-        slide = self.images[img_id]
-        slide_url = slide.uri.removeprefix('file://')
+        slide: QuPathProjectImageEntry = self.images[img_id]
+        slide_url: str = slide.uri.removeprefix('file://')
         # remove leading '/' on windows systems '/C:/...' -> 'C:/...'
         if platform.system() == 'Windows':
             slide_url = slide_url.removeprefix('/')
         with openslide.open_slide(slide_url) as slide_data:
-            tile = slide_data.read_region(location, downsample_level, size)
+            tile: Image = slide_data.read_region(location, downsample_level, size)
         return tile
 
 
-    def get_tile_annot(self, img_id, location, size, class_filter = None):
+    def get_tile_annot(self,
+                       img_id: int,
+                       location: Tuple[int, int],
+                       size: Tuple[int, int],
+                       class_filter: Optional[List[Union[int, str]]] = None):
         ''' get tile annotations between (x|y) and (x + size| y + size)
 
         Parameters
@@ -143,20 +158,22 @@ class QuPathTilingProject(QuPathProject):
 
         Returns
         -------
-        tile_intersections: _
+        :
             list of annotations (shapely polygons) in tile
         '''
-        slide = self.images[img_id]
-        hier_data = slide.hierarchy.annotations
+        location_x: int
+        location_y: int
+        width: int
+        height: int
         location_x, location_y = location
         width, height = size
-        polygon_tile = Polygon((
+        polygon_tile: Polygon = Polygon((
             [location_x, location_y],
             [location_x + width, location_y],
             [location_x + width, location_y + height],
             [location_x, location_y + height]
         ))
-        tile_intersections = []
+        tile_intersections: List[Tuple[str, Polygon]] = []
 
         if img_id not in self.img_annot_dict:
             self.update_img_annot_dict(img_id)
@@ -216,7 +233,7 @@ class QuPathTilingProject(QuPathProject):
         width, height = size
         downsample_factor = 2 ** downsample_level
         # level_0_size needed to get all Polygons in downsampled area
-        level_0_size = map(lambda x: x* downsample_factor, size)
+        level_0_size = tuple(map(lambda x: x* downsample_factor, size))
         tile_intersections = self.get_tile_annot(img_id, location, level_0_size, class_filter)
 
         if multilabel:
