@@ -179,8 +179,9 @@ class QuPathTilingProject(QuPathProject):
             self.update_img_annot_dict(img_id)
 
         ann_tree, index_and_class = self.img_annot_dict[img_id]
-        near_polys = [poly for poly in ann_tree.query(polygon_tile)]
-        near_poly_classes = [index_and_class[id(poly)][1] for poly in near_polys]
+        near_polys: List[BaseGeometry] = list(ann_tree.query(polygon_tile))
+        near_poly_classes: List[str] = [index_and_class[id(poly)][1] for poly in near_polys]
+
         for poly, annot_class in zip(near_polys, near_poly_classes):
             intersection = poly.intersection(polygon_tile)
             if intersection.is_empty:
@@ -301,8 +302,10 @@ class QuPathTilingProject(QuPathProject):
                                              min_polygon_area,
                                              multilabel)
         for annot_poly, annot_class in poly_annot_list:
-            poly_to_add = affinity.translate(annot_poly, location[0], location[1])
-            slide.hierarchy.add_annotation(poly_to_add, self._class_dict[annot_class])
+            slide.hierarchy.add_annotation(
+                affinity.translate(annot_poly, location[0], location[1]),
+                self._class_dict[annot_class]
+            )
 
 
     def merge_near_annotations(self, img_id, max_dist):
