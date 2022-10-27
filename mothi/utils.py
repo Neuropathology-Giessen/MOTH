@@ -59,8 +59,7 @@ def label_img_to_polys(label_img, downsample_level = 0, min_polygon_area = 0, mu
             
             if child_id == -1:
                 poly = Polygon(contours[current_id])
-                exterior, interior = _round_polygon(poly, export = False)
-                poly = Polygon(exterior, interior)
+                poly = Polygon(*_round_polygon(poly, export = False))
             else:
                 holes = []
                 hole_poly = Polygon(contours[child_id]).buffer(
@@ -85,8 +84,7 @@ def label_img_to_polys(label_img, downsample_level = 0, min_polygon_area = 0, mu
                     )))
                     next_child_id = hierarchy[0][next_child_id][0]
                 poly = Polygon(contours[current_id], holes)
-                exterior, interior = _round_polygon(poly, export = False)
-                poly = Polygon(exterior, interior)
+                poly = Polygon(*_round_polygon(poly, export = False))
 
             poly = shapely.affinity.scale(poly, xfact = 1*downsample_factor, yfact = 1*downsample_factor, origin = (0,0))
             if not poly.is_valid:
@@ -96,39 +94,79 @@ def label_img_to_polys(label_img, downsample_level = 0, min_polygon_area = 0, mu
 
     return poly_labels
 
-def _round_polygon(polygon, export = True):
+
+def _round_polygon(polygon: Polygon, export = True):
     ''' round polygon coords to discrete values 
 
-        Parameters:
-            polygon:    Polygon to round coords
+    Parameters
+    ----------
+        polygon:
+            Polygon to round coords
 
-        Returns:
-            exterior:   rounded exterior coords
-            interior:   rounded interior coords
+    Returns
+    -------
+        :
+            rounded exterior coords
+        :
+            rounded interior coords
     '''
-    exteriors = np.array(polygon.exterior.coords)
-    centroid_coords = np.array([polygon.centroid.x, polygon.centroid.y])
+    exteriors: NDArray[np.int32] = np.array(polygon.exterior.coords) # type: ignore
+    centroid_coords: NDArray[np.float64] = np.array(
+        [polygon.centroid.x, polygon.centroid.y],  # type:ignore
+        dtype=np.float64
+    )
 
-    discrete_interiors = []
-    interior_polys = [poly for poly in polygon.interiors]
-    interior_centroids = [np.array([poly.centroid.x, poly.centroid.y]) for poly in interior_polys]
-    interiors_coord = [np.array(poly.coords) for poly in interior_polys]
+    discrete_interiors: List[NDArray[np.int32]] = []
+    interior_polys: Union[InteriorRingSequence, List[Any]] = polygon.interiors
+    interior_centroids: List[NDArray[np.float64]] = [
+        np.array([poly.centroid.x, poly.centroid.y], dtype=np.float64)
+        for poly in interior_polys
+    ]
+    interiors_coord: List[NDArray[np.float64]] = [
+        np.array(poly.coords, dtype=np.float64)
+        for poly in interior_polys
+    ]
+
+    exteriors = np.apply_along_axis(_int_coord, 1,
+                                    exteriors,
+                                    centroid_coords,
+                                    export).astype(np.int32)
+    if len(interior_polys) > 0:
+        for coords, centroid_coords in zip(interiors_coord, interior_centroids):
+            discrete_interiors.append(
+                np.apply_along_axis(_int_coord, 1, coords, centroid_coords, export).astype(np.int32)
+            )
+    return exteriors, discrete_interiors
+
+
+def _int_coord(coord: np.float64, centroid_coords: np.float64, export: bool) -> NDArray[np.int32]:
+    ''' round coordinate,
+        increase or decrease value in comparision to the centroid
+        (needed to eliminate difference between QuPath and shapely)
+
+    Parameters
+    ----------
+    coord:
+        coordinate to be rounded
+    centroid_coords:
+        reference centroid coordinate
+    export:
+        differ between import and export: increase or decrease coordinate
+        depends on relation to centroid coordinate
     
+    Returns
+    -------
+    :
+        [rounded and] adjusted Array
+    '''
     if export:
-        int_coord = lambda coord, centroid_coords: np.where(
+        return np.where(
         coord > centroid_coords,
         np.round(coord) - 1,
         np.round(coord)
         )
-    else:
-        int_coord = lambda coord, centroid_coords: np.where(
+    return np.where(
         coord > centroid_coords,
         np.round(coord) + 1,
         np.round(coord)
         )
-
-    exteriors = np.apply_along_axis(int_coord, 1, exteriors, centroid_coords).astype(np.int32)
-    if len(interior_polys) > 0:
-        for coords, centroid in zip(interiors_coord, interior_centroids):
-            discrete_interiors.append(np.apply_along_axis(int_coord, 1, coords, centroid).astype(np.int32))
-    return exteriors, discrete_interiors
