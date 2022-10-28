@@ -289,7 +289,9 @@ class QuPathTilingProject(QuPathProject):
                 trans_inter,
                 xfact = 1/downsample_factor,
                 yfact = 1/downsample_factor,
-                origin = (0,0)
+                origin = (0,0)  # type: ignore
+                                # coords Tuple[int, int] are also valid
+                                # docu: https://shapely.readthedocs.io/en/stable/manual.html#shapely.affinity.scale
             )
 
             exteriors: NDArray[np.int32]

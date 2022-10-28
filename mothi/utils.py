@@ -3,8 +3,7 @@ from typing import Any, List, Tuple, Union
 import numpy as np
 from numpy.typing import NDArray
 import cv2
-import shapely
-
+from shapely import affinity
 from shapely.validation import make_valid
 from shapely.geometry import Polygon, CAP_STYLE, JOIN_STYLE
 from shapely.geometry.base import BaseGeometry
@@ -78,10 +77,11 @@ def label_img_to_polys(label_img: NDArray[np.uint8],
                     join_style= JOIN_STYLE.mitre,
                     cap_style= CAP_STYLE.square
                 ))
-                holes.append(list(map(
+                holes.append(np.apply_along_axis(
                     lambda coords: np.array(coords).round().astype(np.int32),
-                    hole_poly.exterior.coords
-                )))
+                    0,
+                    hole_poly.exterior.coords  # type: ignore
+                ))
                 # search for further childs
                 # further childs are listed by next in hierarchy of a known child
                 next_child_id: int = hierarchy[0][child_id][0]
@@ -91,18 +91,21 @@ def label_img_to_polys(label_img: NDArray[np.uint8],
                         join_style= JOIN_STYLE.mitre,
                         cap_style= CAP_STYLE.square
                     ))
-                    holes.append(list(map(
+                    holes.append(np.apply_along_axis(
                         lambda coords: np.array(coords).round().astype(np.int32),
-                        hole_poly.exterior.coords
-                    )))
+                        0,
+                        hole_poly.exterior.coords  # type:ignore
+                    ))
                     next_child_id = hierarchy[0][next_child_id][0]
                 poly = Polygon(contours[current_id], holes)
                 poly = Polygon(*_round_polygon(poly, export = False))
 
-            poly = shapely.affinity.scale(poly, xfact = 1*downsample_factor, yfact = 1*downsample_factor, origin = (0,0))
-                                          xfact = 1 * downsample_factor,
-                                          yfact = 1 * downsample_factor,
-                                          origin = (0,0))
+            poly = affinity.scale(poly,
+                xfact = 1 * downsample_factor,
+                yfact = 1 * downsample_factor,
+                origin = (0,0))  # type: ignore
+                                 # coords Tuple[int, int] are also valid
+                                 # docu: https://shapely.readthedocs.io/en/stable/manual.html#shapely.affinity.scale
             if not poly.is_valid:
                 poly = make_valid(poly)
             if poly.area > min_polygon_area:
@@ -126,9 +129,9 @@ def _round_polygon(polygon: Polygon, export = True):
         :
             rounded interior coords
     '''
-    exteriors: NDArray[np.int32] = np.array(polygon.exterior.coords)
+    exteriors: NDArray[np.int32] = np.array(polygon.exterior.coords)  # type: ignore
     centroid_coords: NDArray[np.float64] = np.array(
-        [polygon.centroid.x, polygon.centroid.y],
+        [polygon.centroid.x, polygon.centroid.y],  # type: ignore
         dtype=np.float64
     )
 
