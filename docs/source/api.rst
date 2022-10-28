@@ -12,3 +12,4 @@ utils
 -----
 .. automodule:: mothi.utils
     :members:
+    :private-members:
