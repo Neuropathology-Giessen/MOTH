@@ -70,18 +70,18 @@ class TestTileExport(unittest.TestCase):
                      (510, 550)])
         ]
         tile_instersections = self.qp_project.get_tile_annot(0, (500, 500), (50, 50))
-        polys = [intersection[1] for intersection in tile_instersections]
+        polys = [intersection[0] for intersection in tile_instersections]
         for i, poly in enumerate(polys):
             self.assertTrue(poly.equals(expected_polygons[i]))
 
     def test_get_tile_annot_mask(self):
         single_mask = self.qp_project.get_tile_annot_mask(0, (500,  500),
                                                   (25, 25), downsample_level=1, 
-                                                  multilabel=False)
+                                                  multichannel=False)
         self.assertTrue(np.array_equal(self.expected_singlemask, single_mask))
         multi_mask = self.qp_project.get_tile_annot_mask(0, (500,  500),
                                                   (25, 25), downsample_level=1, 
-                                                  multilabel=True)
+                                                  multichannel=True)
         self.assertTrue(np.array_equal(self.expected_multimask, multi_mask))                                   
 
     def tearDown(self):
@@ -118,12 +118,12 @@ class TestTileImport(unittest.TestCase):
         ]
         poly_with_class_single = label_img_to_polys(self.expected_singlemask,
                                                downsample_level= 1, 
-                                               multilabel = False)
+                                               multichannel = False)
         for i, (poly, _) in enumerate(poly_with_class_single):
             self.assertTrue(poly.simplify(0).equals(expected_polygons[i]))
         poly_with_class_multi = label_img_to_polys(self.expected_singlemask,
                                                downsample_level= 1, 
-                                               multilabel = True)
+                                               multichannel = True)
         for i, (poly, _) in enumerate(poly_with_class_multi):
             self.assertTrue(poly.simplify(0).equals(expected_polygons[i]))
 
