@@ -144,25 +144,25 @@ class QuPathTilingProject(QuPathProject):
             img_id: int,
             location: Tuple[int, int],
             size: Tuple[int, int],
-            class_filter: Optional[List[Union[int, str]]] = None) -> List[Tuple[str, Polygon]]:
-        ''' get tile annotations between (x|y) and (x + size| y + size)
+            class_filter: Optional[List[Union[int, str]]] = None) -> List[Tuple[Polygon, str]]:
+        ''' get tile annotations between (x,y) and (x + width, y + height)
 
         Parameters
         ----------
         img_id:
-            id of image to operate
+            id of image from which the tile annotations will be extracted
         location:
-            (x, y) tuple containing coordinates for the top left pixel in the level 0 slide
+            (x, y) coordinates for the top left pixel in the tile \n
+            pixel location without downsampling
         size:
-            (width, height) tuple containing the tile size
+            (width, height) for the tile
         class_filter:
-            list of annotationclass names or ids to filter by
-            if None no filter is applied
+            list of annotationclass names or id's to filter by
 
         Returns
         -------
         :
-            list of annotations (shapely polygons) in tile
+            list of annotations (polygon, annotation_class) in tile
         '''
         location_x: int
         location_y: int
@@ -170,13 +170,14 @@ class QuPathTilingProject(QuPathProject):
         height: int
         location_x, location_y = location
         width, height = size
+        # Polygon, representing tile
         polygon_tile: Polygon = Polygon((
             [location_x, location_y],
             [location_x + width, location_y],
             [location_x + width, location_y + height],
             [location_x, location_y + height]
         ))
-        tile_intersections: List[Tuple[str, Polygon]] = []
+        tile_intersections: List[Tuple[Polygon, str]] = []
 
         if img_id not in self.img_annot_dict:
             self.update_img_annot_dict(img_id)
@@ -189,6 +190,7 @@ class QuPathTilingProject(QuPathProject):
 
         poly: BaseGeometry
         annot_class: str
+        # check if detected polygons intersect with tile and save intersections
         for poly, annot_class in zip(near_polys, near_poly_classes):
             intersection: BaseGeometry = poly.intersection(polygon_tile)
             if intersection.is_empty:
@@ -204,11 +206,11 @@ class QuPathTilingProject(QuPathProject):
                 inter: Union[BaseGeometry, BaseMultipartGeometry]
                 for inter in intersection.geoms:
                     if isinstance(inter, Polygon):
-                        tile_intersections.append((annot_class, inter))
+                        tile_intersections.append((inter, annot_class))
 
             # filter applies and is a polygon
             elif filter_bool and isinstance(intersection, Polygon):
-                tile_intersections.append((annot_class, intersection))
+                tile_intersections.append((intersection, annot_class))
 
         return tile_intersections
 
@@ -254,7 +256,7 @@ class QuPathTilingProject(QuPathProject):
         downsample_factor = 2 ** downsample_level
         # level_0_size needed to get all Polygons in downsampled area
         level_0_size: Tuple[int, int] = tuple(map(lambda x: x* downsample_factor, size))
-        tile_intersections: List[Tuple[str, Polygon]] = self.get_tile_annot(img_id,
+        tile_intersections: List[Tuple[Polygon, str]] = self.get_tile_annot(img_id,
                                                                             location,
                                                                             level_0_size,
                                                                             class_filter)
@@ -266,9 +268,9 @@ class QuPathTilingProject(QuPathProject):
         else:
             # sort intersections descending by area.
             # Now we can not accidentally overwrite polys with other poly holes
-            sorted_intersections: List[Tuple[str, Polygon]] = sorted(
+            sorted_intersections: List[Tuple[Polygon, str]] = sorted(
                 tile_intersections,
-                key = lambda tup: Polygon(tup[1].exterior).area,
+                key = lambda tup: Polygon(tup[0].exterior).area,
                 reverse=True
             )
             tile_intersections = sorted_intersections
@@ -276,7 +278,7 @@ class QuPathTilingProject(QuPathProject):
 
         inter_class: str
         intersection: Polygon
-        for inter_class, intersection in tile_intersections:
+        for intersection, inter_class in tile_intersections:
             class_num: int = self._inverse_class_dict[inter_class]
             if multilabel: # first class should be on the lowest level for multilabels
                 class_num -= 1
