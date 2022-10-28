@@ -392,12 +392,15 @@ class QuPathTilingProject(QuPathProject):
                 near_poly_index_and_classes: List[Tuple[int, str]] = [class_by_id[id(poly)]
                                                                       for poly in near_polys]
 
-                while len(near_polys) > 0:
+                # check if nearby polygons are detected
+                if len(near_polys) == 0:
+                    continue
+                near_poly: BaseGeometry
                     near_poly_index: int
                     near_poly_annotation_class: str
-                    near_poly_index, near_poly_annotation_class = near_poly_index_and_classes.pop(0)
-                    near_poly: BaseGeometry = near_polys.pop(0)
-
+                for near_poly, (near_poly_index, near_poly_annotation_class) in zip(
+                        near_polys,
+                        near_poly_index_and_classes):
                     # detected Polygon is already merged
                     # -> no further checks needed
                     if near_poly_index in already_merged:
