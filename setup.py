@@ -8,5 +8,5 @@ setup(
         'paquo',
         'opencv-python',
         'numpy',
-        'openslide-python'
+        'tiffslide'
     ])

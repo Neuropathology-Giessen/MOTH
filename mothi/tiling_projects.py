@@ -5,7 +5,7 @@ from typing import List, Dict, Tuple, Union, Literal, Iterable, Optional
 import numpy as np
 from numpy.typing import NDArray
 import cv2
-import openslide
+from tiffslide import TiffSlide
 from shapely import affinity
 from shapely.geometry import Polygon, MultiPolygon, GeometryCollection
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
@@ -138,7 +138,7 @@ class QuPathTilingProject(QuPathProject):
         if platform.system() == 'Windows':
             slide_url = slide_url.removeprefix('/')
         # get requested tile
-        with openslide.open_slide(slide_url) as slide_data:
+        with TiffSlide(slide_url) as slide_data:
             tile: Image = slide_data.read_region(location, downsample_level, size)
         return tile
 
