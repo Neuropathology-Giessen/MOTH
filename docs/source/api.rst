@@ -1,5 +1,6 @@
-Moth API
-========
+=========
+Mothi API
+=========
 
 At the moment `mothi` contains :class:`QuPathTilingProject` and utils
 

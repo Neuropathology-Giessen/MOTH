@@ -3,13 +3,14 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to MOTH's documentation!
-================================
+=================================
+Welcome to MOTHI's documentation!
+=================================
 
-moth (**M**\emory-efficient **O**\n-the-fly **T**\iling of **H**\istological images using QuPath) is a 
-`Python <https://www.python.org/>`_ 
-library extending the funcionalities of 
-`paquo <https://github.com/bayer-science-for-a-better-life/paquo>`_. 
+| mothi (**M**\emory-efficient **O**\n-the-fly **T**\iling of **H**\istological **i**\mages using QuPath) is a 
+  `Python <https://www.python.org/>`_ 
+  library extending the funcionalities of
+  `paquo <https://github.com/bayer-science-for-a-better-life/paquo>`_. 
 
 .. toctree::
    :maxdepth: 2
@@ -17,10 +18,3 @@ library extending the funcionalities of
 
    installation
    api
-
-.. Indices and tables
-   ==================
-
-   * :ref:`genindex`
-   * :ref:`modindex`
-   * :ref:`search`
