@@ -102,26 +102,26 @@ class QuPathTilingProject(QuPathProject):
 
     @overload
     def get_tile(self,
-        img_id: int = ...,
-        location: Tuple[int, int] = ...,
-        size: Tuple[int, int] = ...,
+        img_id: int,
+        location: Tuple[int, int],
+        size: Tuple[int, int],
         downsample_level: int = 0) -> Image:
         ...
 
     @overload
     def get_tile(self,
-        img_id: int = ...,
-        location: Tuple[int, int] = ...,
-        size: Tuple[int, int] = ...,
+        img_id: int,
+        location: Tuple[int, int],
+        size: Tuple[int, int],
         downsample_level: int = 0,
         *,
-        ret_array: Literal[True] = ...) -> NDArray[np.int_]:
+        ret_array: Literal[True]) -> NDArray[np.int_]:
         ...
 
     def get_tile(self,
-            img_id: int = ...,
-            location: Tuple[int, int] = ...,
-            size: Tuple[int, int] = ...,
+            img_id: int,
+            location: Tuple[int, int],
+            size: Tuple[int, int],
             downsample_level: int = 0,
             *,
             ret_array: bool = False) -> Union[Image, NDArray[np.int_]]:
