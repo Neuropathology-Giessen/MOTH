@@ -1,6 +1,6 @@
 import pathlib
 import platform
-from typing import List, Dict, Tuple, Union, Literal, Iterable, Optional
+from typing import List, Dict, Tuple, Union, Literal, Iterable, Optional, overload
 
 import numpy as np
 from numpy.typing import NDArray
@@ -100,11 +100,31 @@ class QuPathTilingProject(QuPathProject):
         self.img_annot_dict[img_id] = (img_ann_tree, class_by_id)
 
 
+    @overload
     def get_tile(self,
-            img_id: int,
-            location: Tuple[int, int],
-            size: Tuple[int, int],
-            downsample_level: int = 0) -> Image:
+        img_id: int = ...,
+        location: Tuple[int, int] = ...,
+        size: Tuple[int, int] = ...,
+        downsample_level: int = 0) -> Image:
+        ...
+
+    @overload
+    def get_tile(self,
+        img_id: int = ...,
+        location: Tuple[int, int] = ...,
+        size: Tuple[int, int] = ...,
+        downsample_level: int = 0,
+        *,
+        ret_array: Literal[True] = ...) -> NDArray[np.int_]:
+        ...
+
+    def get_tile(self,
+            img_id: int = ...,
+            location: Tuple[int, int] = ...,
+            size: Tuple[int, int] = ...,
+            downsample_level: int = 0,
+            *,
+            ret_array: bool = False) -> Union[Image, NDArray[np.int_]]:
         ''' get tile starting at (x,y) (slide level 0) with given size
 
         Parameters
@@ -118,6 +138,9 @@ class QuPathTilingProject(QuPathProject):
             (width, height) for the tile
         downsample_level:
             level for downsampling
+        ret_array:
+            True: return tile as array
+            False: return as PIL Image
 
         Returns
         -------
@@ -131,8 +154,18 @@ class QuPathTilingProject(QuPathProject):
             slide_url = slide_url.removeprefix('/')
         # get requested tile
         with TiffSlide(slide_url) as slide_data:
-            tile: Image = slide_data.read_region(location, downsample_level, size)
-        return tile
+            # if an array is requested, return array
+            if ret_array:
+                return slide_data.read_region(
+                    location,
+                    downsample_level,
+                    size,
+                    as_array=True
+                )
+            return slide_data.read_region(
+                location,
+                downsample_level,
+                size)
 
 
     def get_tile_annot(self,

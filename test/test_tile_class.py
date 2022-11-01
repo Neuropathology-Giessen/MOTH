@@ -70,6 +70,11 @@ class TestTileExport(unittest.TestCase):
         expected_tile: NDArray[np.uint8] = (np.ones((50, 50, 3)) * 255).astype(np.uint8)
         tile: Image = self.qp_project.get_tile(0, (500, 500), (50, 50))
         self.assertTrue(np.array_equal(expected_tile, np.asarray(tile)))
+        tile_arr: NDArray[np.int_] = self.qp_project.get_tile(0,
+            (500, 500),
+            (50, 50),
+            ret_array=True)
+        self.assertTrue(np.array_equal(expected_tile, tile_arr))
 
     def test_get_tile_annot(self):
         # use custom annotation to know how the tiled annotation should look like
