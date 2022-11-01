@@ -20,14 +20,6 @@ from paquo.hierarchy import QuPathPathObjectHierarchy, PathObjectProxy
 from paquo.pathobjects import QuPathPathAnnotationObject
 from mothi.utils import label_img_to_polys, _round_polygon
 
-# import openSlide (https://openslide.org/api/python/#installing)
-# OPENSLIDE_PATH = 'C:\\Program Files\\openslide-win64-20220811\\bin'
-# if hasattr(os, 'add_dll_directory'):
-#     # Python >= 3.8 on Windows
-#     with os.add_dll_directory(OPENSLIDE_PATH):
-#         import openslide
-# else:
-#     import openslide
 
 ProjectIOMode = Literal["r", "r+", "w", "w+", "a", "a+", "x", "x+"]
 
