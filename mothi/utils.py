@@ -1,3 +1,4 @@
+''' util function supporting the QuPathTilingProject class. Function also can be useful for different use cases '''
 from typing import Any, List, Tuple, Union
 
 import numpy as np
@@ -10,7 +11,7 @@ from shapely.geometry.base import BaseGeometry
 from shapely.geometry.polygon import InteriorRingSequence
 
 
-def label_img_to_polys(label_img: NDArray[np.uint8],
+def label_img_to_polys(label_img: NDArray[np.uint],
         downsample_level: int = 0,
         min_polygon_area: Union[float, int] = 0,
         multichannel: bool = False) -> List[Tuple[Union[Polygon, BaseGeometry], int]]:
@@ -43,17 +44,17 @@ def label_img_to_polys(label_img: NDArray[np.uint8],
     class_id: int
     for class_id in iter_range:
         # get the binary mask of the current class
-        it_img: NDArray[np.uint8]
+        it_img: NDArray[np.uint]
         if multichannel:
             it_img = label_img[class_id]
             class_id += 1
         else:
-            label_img_copy: NDArray[np.uint8] = label_img.copy()
-            it_img = np.where(label_img_copy == class_id, 1, 0).astype(np.uint8)
+            label_img_copy: NDArray[np.uint] = label_img.copy()
+            it_img = np.where(label_img_copy == class_id, 1, 0).astype(np.uint)
 
         ## find contours in binary mask
-        contours: Tuple[NDArray[np.int32], ...]
-        hierarchy: NDArray[np.int32]
+        contours: Tuple[NDArray[np.int_], ...]
+        hierarchy: NDArray[np.int_]
         contours, hierarchy = cv2.findContours(it_img, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
         contours = tuple(map(np.squeeze, contours))
         if len(contours) == 0:
@@ -83,14 +84,14 @@ def label_img_to_polys(label_img: NDArray[np.uint8],
                 poly = Polygon(*_round_polygon(poly, export = False))
             else:
                 ## detect all holes
-                holes: List[NDArray[np.int32]] = []
+                holes: List[NDArray[np.int_]] = []
                 hole_poly: Polygon = Polygon(Polygon(contours[child_id]).buffer(
                     -1,
                     join_style= JOIN_STYLE.mitre,
                     cap_style= CAP_STYLE.square
                 ))
                 holes.append(np.apply_along_axis(
-                    lambda coords: np.array(coords).round().astype(np.int32),
+                    lambda coords: np.array(coords).round().astype(np.int_),
                     0,
                     hole_poly.exterior.coords  # type: ignore
                 ))
@@ -104,7 +105,7 @@ def label_img_to_polys(label_img: NDArray[np.uint8],
                         cap_style= CAP_STYLE.square
                     ))
                     holes.append(np.apply_along_axis(
-                        lambda coords: np.array(coords).round().astype(np.int32),
+                        lambda coords: np.array(coords).round().astype(np.int_),
                         0,
                         hole_poly.exterior.coords  # type:ignore
                     ))
@@ -129,7 +130,7 @@ def label_img_to_polys(label_img: NDArray[np.uint8],
 
 
 def _round_polygon(polygon: Polygon,
-        export: bool = True) -> Tuple[NDArray[np.int32], List[NDArray[np.int32]]]:
+        export: bool = True) -> Tuple[NDArray[np.int_], List[NDArray[np.int_]]]:
     ''' round polygon coordinates to discrete values
 
     Parameters
@@ -144,23 +145,23 @@ def _round_polygon(polygon: Polygon,
         :
             list of rounded interior coords
     '''
-    exteriors: NDArray[np.int32] = np.array(polygon.exterior.coords)  # type: ignore
+    exteriors: NDArray[np.int_] = np.array(polygon.exterior.coords)  # type: ignore
     ## get centroid of the polygon
-    centroid_coords: NDArray[np.float64] = np.array(
+    centroid_coords: NDArray[np.float_] = np.array(
         [polygon.centroid.x, polygon.centroid.y],  # type: ignore
-        dtype=np.float64
+        dtype=np.float_
     )
 
-    discrete_interiors: List[NDArray[np.int32]] = []
+    discrete_interiors: List[NDArray[np.int_]] = []
     interior_polys: Union[InteriorRingSequence, List[Any]] = polygon.interiors
     # get centroid of the polygon interiors
-    interior_centroids: List[NDArray[np.float64]] = [
-        np.array([poly.centroid.x, poly.centroid.y], dtype=np.float64)
+    interior_centroids: List[NDArray[np.float_]] = [
+        np.array([poly.centroid.x, poly.centroid.y], dtype=np.float_)
         for poly in interior_polys
     ]
     # get list of the polygon coordinates
-    interiors_coord: List[NDArray[np.float64]] = [
-        np.array(poly.coords, dtype=np.float64)
+    interiors_coord: List[NDArray[np.float_]] = [
+        np.array(poly.coords, dtype=np.float_)
         for poly in interior_polys
     ]
 
@@ -168,19 +169,19 @@ def _round_polygon(polygon: Polygon,
     exteriors = np.apply_along_axis(_int_coord, 1,
                                     exteriors,
                                     centroid_coords,
-                                    export).astype(np.int32)
-    coords: NDArray[np.float64]
+                                    export).astype(np.int_)
+    coords: NDArray[np.float_]
     if len(interior_polys) > 0:
         for coords, centroid_coords in zip(interiors_coord, interior_centroids):
             discrete_interiors.append(
-                np.apply_along_axis(_int_coord, 1, coords, centroid_coords, export).astype(np.int32)
+                np.apply_along_axis(_int_coord, 1, coords, centroid_coords, export).astype(np.int_)
             )
     return exteriors, discrete_interiors
 
 
-def _int_coord(coord: NDArray[np.float64],
-        centroid_coords: NDArray[np.float64],
-        export: bool) -> NDArray[np.int32]:
+def _int_coord(coord: NDArray[np.float_],
+        centroid_coords: NDArray[np.float_],
+        export: bool) -> NDArray[np.int_]:
     ''' round coordinate \n
     increase or decrease value in comparision to the centroid
     (needed to eliminate difference between QuPath and shapely)
