@@ -3,8 +3,21 @@
 # Installation
 `mothi` can be installed via `pip`:
 ```bash
- pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple mothi
+ user@computer:~$ pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple mothi
 ```
+
+## Install QuPath
+To interact with QuPath, paquo (package that mothi extends) requires a working QuPath installation.  
+To install QuPath follow the QuPath installation guide:
+  [Install QuPath](https://qupath.readthedocs.io/en/stable/docs/intro/installation.html).  
+
+If `QuPath` is not installed in the default directory, you need to configure QuPath for paquo via:
+
+```bash
+  user@computer:~$ export PAQUO_QUPATH_DIR=/path/to/QuPath
+```
+
+or via the [configuration](https://paquo.readthedocs.io/en/latest/configuration.html#configuration) of paquo.
 
 # Install via Docker
 To get a ready to use (python, mothi and QuPath installed) Docker container,
@@ -33,7 +46,7 @@ Open the folder in VSCode and follow the VSCode Dev Container
 # For development
 after cloning the repository follow the steps below to generate the documentation as html files.
 ```bash
-cd repo/docs
-make html
+  user@computer:~/path/to/repo$ cd ./docs
+  user@computer:~/path/to/repo/docs$ make html
 ``` 
 after building the documentation files, they can be found under `repo/docs/build/html`
