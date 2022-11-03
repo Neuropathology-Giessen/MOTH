@@ -35,11 +35,11 @@ class TestTileImportExportCicle(unittest.TestCase):
         self.temporary_project.update_path_classes(self.qp_project.path_classes)
 
     def test_import_export_cycle(self):
-        first_export: NDArray[np.uint8] = self.qp_project.get_tile_annot_mask(
+        first_export: NDArray[np.int32] = self.qp_project.get_tile_annot_mask(
             0, (10,10), (450, 450)
         )
         self.temporary_project.save_mask_annotations(0, first_export, location= (1000,1000))
-        second_export: NDArray[np.uint8] = self.temporary_project.get_tile_annot_mask(
+        second_export: NDArray[np.int32] = self.temporary_project.get_tile_annot_mask(
             0, (1000,1000), (450, 450)
         )
         self.assertTrue(np.array_equal(first_export, second_export))
@@ -98,13 +98,13 @@ class TestTileExport(unittest.TestCase):
             self.assertTrue(poly.equals(expected_polygons[i]))
 
     def test_get_tile_annot_mask(self):
-        single_mask: NDArray[np.uint8]  = self.qp_project.get_tile_annot_mask(
+        single_mask: NDArray[np.int_]  = self.qp_project.get_tile_annot_mask(
             0, (500,  500), (25, 25),
             downsample_level=1,
             multichannel=False
         )
         self.assertTrue(np.array_equal(self.expected_singlemask, single_mask))
-        multi_mask: NDArray[np.uint8] = self.qp_project.get_tile_annot_mask(0, (500,  500),
+        multi_mask: NDArray[np.int_] = self.qp_project.get_tile_annot_mask(0, (500,  500),
                                                   (25, 25), downsample_level=1,
                                                   multichannel=True)
         self.assertTrue(np.array_equal(self.expected_multimask, multi_mask))
@@ -122,8 +122,8 @@ class TestTileImport(unittest.TestCase):
         self.temp_qp_project.update_path_classes(self.qp_project.path_classes)
         with open(EXPECTED_MASK_PATH, 'rb') as mask_file:
             expected_masks = pickle.load(mask_file)
-        self.expected_singlemask: NDArray[np.uint8] = expected_masks[0]
-        self.expected_multimask: NDArray[np.uint8] = expected_masks[1]
+        self.expected_singlemask: NDArray[np.int32] = expected_masks[0]
+        self.expected_multimask: NDArray[np.int32] = expected_masks[1]
 
     def test_label_img_to_polys(self):
         # check for correct polygons
@@ -146,26 +146,28 @@ class TestTileImport(unittest.TestCase):
             downsample_level= 1,
             multichannel = False
         )
+        self.assertTrue(len(poly_with_class_single) == 2)
         for i, (poly, _) in enumerate(poly_with_class_single):
             self.assertTrue(poly.simplify(0).equals(expected_polygons[i]))
         poly_with_class_multi = label_img_to_polys(self.expected_singlemask,
-                                               downsample_level= 1, 
+                                               downsample_level= 1,
                                                multichannel = True)
+        self.assertTrue(len(poly_with_class_multi) == 2)
         for i, (poly, _) in enumerate(poly_with_class_multi):
             self.assertTrue(poly.simplify(0).equals(expected_polygons[i]))
 
     def test_save_and_merge_annotations(self):
         # test by exporting two times size (25, 25), importing and merge those tiles,
         # export tile
-        export_1: NDArray[np.uint8] = self.qp_project.get_tile_annot_mask(
+        export_1: NDArray[np.int_] = self.qp_project.get_tile_annot_mask(
             0, (500, 500), (25, 25),
             downsample_level=1
         )
-        export_2: NDArray[np.uint8] = self.qp_project.get_tile_annot_mask(
+        export_2: NDArray[np.int_] = self.qp_project.get_tile_annot_mask(
             0, (500, 550), (25, 25),
             downsample_level=1
         )
-        export_complete_area: NDArray[np.uint8] = self.qp_project.get_tile_annot_mask(
+        export_complete_area: NDArray[np.int_] = self.qp_project.get_tile_annot_mask(
             0, (500, 500), (25, 50),
             downsample_level=1
         )
