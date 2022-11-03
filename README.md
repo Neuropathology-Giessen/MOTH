@@ -44,9 +44,12 @@ Open the folder in VSCode and follow the VSCode Dev Container
 
 
 # For development
-after cloning the repository follow the steps below to generate the documentation as html files.
+after cloning the repository create a `VSCode Dev Container` with the DevDockerfile.
+In the Container, open the repository and follow the steps below:  
+
 ```bash
   user@computer:~/path/to/repo$ cd ./docs
   user@computer:~/path/to/repo/docs$ make html
 ``` 
+
 after building the documentation files, they can be found under `repo/docs/build/html`
