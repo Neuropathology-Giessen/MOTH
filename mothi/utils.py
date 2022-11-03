@@ -11,7 +11,7 @@ from shapely.geometry.base import BaseGeometry
 from shapely.geometry.polygon import InteriorRingSequence
 
 
-def label_img_to_polys(label_img: NDArray[np.uint],
+def label_img_to_polys(label_img: Union[NDArray[np.uint], NDArray[np.int_]],
         downsample_level: int = 0,
         min_polygon_area: Union[float, int] = 0,
         multichannel: bool = False) -> List[Tuple[Union[Polygon, BaseGeometry], int]]:
@@ -44,13 +44,13 @@ def label_img_to_polys(label_img: NDArray[np.uint],
     class_id: int
     for class_id in iter_range:
         # get the binary mask of the current class
-        it_img: NDArray[np.uint]
+        it_img: NDArray[np.uint8]
         if multichannel:
-            it_img = label_img[class_id]
+            it_img = label_img.astype(np.uint8)[class_id]
             class_id += 1
         else:
-            label_img_copy: NDArray[np.uint] = label_img.copy()
-            it_img = np.where(label_img_copy == class_id, 1, 0).astype(np.uint)
+            label_img_copy: Union[NDArray[np.uint], NDArray[np.int_]] = label_img.copy()
+            it_img = np.where(label_img_copy == class_id, 1, 0).astype(np.uint8)
 
         ## find contours in binary mask
         contours: Tuple[NDArray[np.int_], ...]

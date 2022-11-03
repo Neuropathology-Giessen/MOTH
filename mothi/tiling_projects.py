@@ -250,7 +250,7 @@ class QuPathTilingProject(QuPathProject):
             size: Tuple[int, int],
             downsample_level: int = 0,
             multichannel: bool = False,
-            class_filter: Optional[List[Union[int, str]]] = None) -> NDArray[np.uint]:
+            class_filter: Optional[List[Union[int, str]]] = None) -> NDArray[np.int32]:
         ''' get tile annotations mask between (x,y) and (x + width, y + height)
 
         Parameters
@@ -296,11 +296,11 @@ class QuPathTilingProject(QuPathProject):
         # generate NDArray with zeroes where annotation will be drawn
         if multichannel:
             num_classes: int = len(self.path_classes) -1
-            annot_mask: NDArray[np.uint] = np.zeros((num_classes, height, width), dtype = np.uint)
+            annot_mask: NDArray[np.int32] = np.zeros((num_classes, height, width), dtype = np.int32)
 
         else:
             # generate NDArray with zeroes where annotation will be drawn
-            annot_mask: NDArray[np.uint] = np.zeros((height, width), dtype = np.uint)
+            annot_mask: NDArray[np.int32] = np.zeros((height, width), dtype = np.int32)
             ## sort intersections descending by area.
             # Now we can not accidentally overwrite polys with other poly holes
             sorted_intersections: List[Tuple[Polygon, str]] = sorted(
@@ -333,8 +333,8 @@ class QuPathTilingProject(QuPathProject):
                                 # docu: https://shapely.readthedocs.io/en/stable/manual.html#shapely.affinity.scale
             )
             # round coordinate points
-            exteriors: NDArray[np.int_]
-            interiors: List[NDArray[np.int_]]
+            exteriors: NDArray[np.int32]
+            interiors: List[NDArray[np.int32]]
             exteriors, interiors = _round_polygon(scale_inter)
 
             # draw rounded coordinate points
@@ -351,7 +351,7 @@ class QuPathTilingProject(QuPathProject):
 
     def save_mask_annotations(self,
             img_id: int,
-            annot_mask: NDArray[np.uint],
+            annot_mask: Union[NDArray[np.uint], NDArray[np.int_]],
             location: Tuple[int, int] = (0,0),
             downsample_level: int = 0,
             min_polygon_area: int = 0,

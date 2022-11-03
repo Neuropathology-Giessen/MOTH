@@ -67,9 +67,9 @@ class TestTileExport(unittest.TestCase):
         self.expected_multimask: NDArray[np.uint8] = expected_masks[1]
 
     def test_get_tile(self):
-        expected_tile: NDArray[np.uint8] = (np.ones((50, 50, 3)) * 255).astype(np.uint8)
+        expected_tile: NDArray[np.int_] = (np.ones((50, 50, 3)) * 255).astype(np.int_)
         tile: Image = self.qp_project.get_tile(0, (500, 500), (50, 50))
-        self.assertTrue(np.array_equal(expected_tile, np.asarray(tile)))
+        self.assertTrue(np.array_equal(expected_tile, np.asarray(tile).astype(np.int_)))
         tile_arr: NDArray[np.int_] = self.qp_project.get_tile(0,
             (500, 500),
             (50, 50),
@@ -94,6 +94,7 @@ class TestTileExport(unittest.TestCase):
         polys: List[Polygon] = [intersection[0] for intersection in tile_instersections]
         i: int
         poly: Polygon
+        self.assertTrue(len(polys) == 2)
         for i, poly in enumerate(polys):
             self.assertTrue(poly.equals(expected_polygons[i]))
 
@@ -122,8 +123,8 @@ class TestTileImport(unittest.TestCase):
         self.temp_qp_project.update_path_classes(self.qp_project.path_classes)
         with open(EXPECTED_MASK_PATH, 'rb') as mask_file:
             expected_masks = pickle.load(mask_file)
-        self.expected_singlemask: NDArray[np.int32] = expected_masks[0]
-        self.expected_multimask: NDArray[np.int32] = expected_masks[1]
+        self.expected_singlemask: NDArray[np.uint8] = expected_masks[0]
+        self.expected_multimask: NDArray[np.uint8] = expected_masks[1]
 
     def test_label_img_to_polys(self):
         # check for correct polygons
@@ -149,7 +150,7 @@ class TestTileImport(unittest.TestCase):
         self.assertTrue(len(poly_with_class_single) == 2)
         for i, (poly, _) in enumerate(poly_with_class_single):
             self.assertTrue(poly.simplify(0).equals(expected_polygons[i]))
-        poly_with_class_multi = label_img_to_polys(self.expected_singlemask,
+        poly_with_class_multi = label_img_to_polys(self.expected_multimask,
                                                downsample_level= 1,
                                                multichannel = True)
         self.assertTrue(len(poly_with_class_multi) == 2)
@@ -159,11 +160,11 @@ class TestTileImport(unittest.TestCase):
     def test_save_and_merge_annotations(self):
         # test by exporting two times size (25, 25), importing and merge those tiles,
         # export tile
-        export_1: NDArray[np.int_] = self.qp_project.get_tile_annot_mask(
+        export_1: NDArray[np.int32] = self.qp_project.get_tile_annot_mask(
             0, (500, 500), (25, 25),
             downsample_level=1
         )
-        export_2: NDArray[np.int_] = self.qp_project.get_tile_annot_mask(
+        export_2: NDArray[np.int32] = self.qp_project.get_tile_annot_mask(
             0, (500, 550), (25, 25),
             downsample_level=1
         )
