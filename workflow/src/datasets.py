@@ -16,7 +16,7 @@ from mothi.tiling_projects import QuPathTilingProject
 
 
 class QPDataset(Dataset, ABC):
-    ''' abstract Dataset with general functionality. \n
+    ''' abstract dataset with general functionality. \n
     In case of inheritance the method __getitem__ must be overwritten.
 
     Parameters
