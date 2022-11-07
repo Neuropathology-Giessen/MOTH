@@ -1,3 +1,5 @@
+.. _mothi api:
+
 =========
 Mothi API
 =========

@@ -17,4 +17,5 @@ Welcome to MOTHI's documentation!
    :caption: Contents:
 
    installation
+   quickstart
    api
