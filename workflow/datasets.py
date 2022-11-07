@@ -28,7 +28,7 @@ class QPDataset(Dataset, ABC):
     size : Tuple[int, int]
         (width, height) of the tiles
     transforms : Any, optional
-        transformation to apply on images and labels, by default None
+        transformation applied to images and labels, by default None
     downsample_level : int, optional
         level for downsampling, by default 0
     tile_count : int, optional
@@ -41,7 +41,7 @@ class QPDataset(Dataset, ABC):
             *,
             transforms: Any = None,
             downsample_level: int = 0,
-            tile_count: int = 0) -> None:            
+            tile_count: int = 0) -> None:
 
         ## set attributes
         self.qp_project: QuPathTilingProject = QuPathTilingProject(qp_project_path)
@@ -123,7 +123,7 @@ class TiledQPDataset(QPDataset):
     size : Tuple[int, int]
         (width, height) of the tiles
     transforms : Any, optional
-        transformation to apply on images and labels, by default None
+        transformation applied to images and labels, by default None
     downsample_level : int, optional
         level for downsampling, by default 0
     '''
@@ -209,7 +209,7 @@ class RandomTiledQPDataset(QPDataset):
     tile_count : int
         number of tiles in the dataset (number of random tiles per epoch)
     transforms : Any, optional
-        transformation to apply on images and labels, by default None
+       transformation applied to images and labels, by default None
     downsample_level : int, optional
         level for downsampling, by default 0
     choose_random_image : bool, optional

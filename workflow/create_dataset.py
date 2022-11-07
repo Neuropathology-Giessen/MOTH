@@ -1,6 +1,6 @@
 import os, pickle
 
-from  dataset import QPDataset
+from  workflow.src.saved_tile_dataset import QPDataset
 from qp_tiling.tile_class import QuPathOperations
 import numpy as np
 import cv2

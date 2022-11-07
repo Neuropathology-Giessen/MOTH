@@ -1,5 +1,5 @@
 # QuPath tiling python
-MOTHI (**M**\emory-efficient **O**\n-the-fly **T**\iling of **H**\istological **I**\mages using QuPath)
+MOTHI (**M**emory-efficient **O**n-the-fly **T**iling of **H**istological **I**mages using QuPath)
 is a [Python](https://www.python.org/) library
 that extends the funcionality of [paquo](https://github.com/bayer-science-for-a-better-life/paquo).  
 
