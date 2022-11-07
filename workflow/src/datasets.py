@@ -160,34 +160,39 @@ class TiledQPDataset(QPDataset):
 
 
     def __getitem__(self, idx: int):
-        # map idx -> location by divide without remainder (//) and modulo (%)
+        return self._get_and_transform_tile(
+            *self.get_location_by_index(idx)
+        )
+
+    def get_location_by_index(self, index) -> Tuple[int, Tuple[int, int]]:
+        ''' docstring to be added '''
         qp_img_id: int
         location: Tuple[int, int]
-        downsample_factor: int = 2**self.downsample_level
-        level_0_size: Tuple[int, int] = tuple(downsample_factor*item for item in self.size)
+        DOWNSAMPLE_FACTOR: int = 2**self.downsample_level
+        level_0_size: Tuple[int, int] = tuple(DOWNSAMPLE_FACTOR*item for item in self.size)
 
         ## get the image for the given index (idx)
         # bisect idx on border list => index of image_id in self.imgs
         # map: index of image_id -> image_id with self.idx_img_to_img_id
-        border_item_idx: int = bisect_left(self.tile_count_borders, idx)
+        border_item_idx: int = bisect_left(self.tile_count_borders, index)
         qp_img_id = self.idx_img_to_img_id[border_item_idx]
 
         ## get the location for the given index (idx)
         # to get the location_id in the image substract id of last border
         location_idx: int
         if border_item_idx == 0:
-            location_idx = idx
+            location_idx = index
         else:
             # first index in the image is the last index of the previous picture + 1
             first_idx_img:int = self.tile_count_borders[border_item_idx-1] + 1
-            location_idx = idx - (first_idx_img)
+            location_idx = index - (first_idx_img)
         ## compute location
         # width = location_idx % width, height = location_idx // width
         maxmul_width: int = self.img_max_tiles_width[qp_img_id]
         location_fac: Tuple[int, int] = (location_idx % maxmul_width, location_idx // maxmul_width)
         location = (level_0_size[0] * location_fac[0], level_0_size[1] * location_fac[1])
 
-        return self._get_and_transform_tile(qp_img_id, location)
+        return qp_img_id, location
 
 
 class RandomTiledQPDataset(QPDataset):
