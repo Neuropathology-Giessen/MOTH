@@ -44,7 +44,7 @@ Open the folder in VSCode and follow the VSCode Dev Container
 
 
 # For development
-after cloning the repository create a `VSCode Dev Container` with the DevDockerfile.
+after cloning the repository create a `VSCode Dev Container` with the `DevDockerfile`.
 In the Container, open the repository and follow the steps below:  
 
 ```bash
