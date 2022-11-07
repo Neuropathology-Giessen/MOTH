@@ -1,4 +1,4 @@
-.. _mothi api:
+.. _api:
 
 =========
 Mothi API

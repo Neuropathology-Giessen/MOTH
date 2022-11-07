@@ -1,4 +1,13 @@
 # QuPath tiling python
+MOTHI (**M**\emory-efficient **O**\n-the-fly **T**\iling of **H**\istological **I**\mages using QuPath)
+is a [Python](https://www.python.org/) library
+that extends the funcionality of [paquo](https://github.com/bayer-science-for-a-better-life/paquo).  
+
+The added functionalities are functions around tiling in QuPath with Python.
+Now tiling can be done on-the-fly with mothi
+and a Python developer no longer needs a Groovy script to generate tiles.
+
+The documentation and examples can be found on `readthedocs`.
 
 # Installation
 `mothi` can be installed via `pip`:

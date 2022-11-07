@@ -1,3 +1,5 @@
+.. _quickstart:
+
 ==========
 Quickstart
 ==========
@@ -42,7 +44,7 @@ Get tile and its annotations
 
 | The example shown above returns tiles and annotations for the first image at position
   (50|50) in size 256 x 256 pixels.
-| Learn more about the parameters of the functions by taking a look at the :ref:`mothi api`.
+| Learn more about the parameters of the functions by taking a look at the :ref:`api`.
 
 ---------------------------
 Save a tilemask on an image
@@ -77,7 +79,7 @@ Save tilemask
 
 | The example will save the generated `tilemask` in the first image 
   starting at (50|50).
-| Learn more about the parameters of the function by taking a look at the :ref:`mothi api`.
+| Learn more about the parameters of the function by taking a look at the :ref:`api`.
 
 Merge annotation
 ~~~~~~~~~~~~~~~~
