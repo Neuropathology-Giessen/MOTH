@@ -45,7 +45,7 @@ Get tile and its annotations
 | Learn more about the parameters of the functions by taking a look at the :ref:`mothi api`.
 
 ---------------------------
-save a tilemask on an image
+Save a tilemask on an image
 ---------------------------
 | The second use case of mothi is storing generated annotations (tilemasks) on images.
 
