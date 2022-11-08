@@ -1,21 +1,21 @@
 import os
-from typing import Any
+from typing import Any, List
 import torch
 from torch.utils.data import Dataset
 from torchvision.transforms import ToTensor
 import cv2
 
 class SavedTilesDataset(Dataset):
-    def __init__(self, dirs: str, transforms: Any = None):
-        '''_summary_
+    ''' dataset for saved tiles
 
-        Parameters
-        ----------
-        dirs : str
-            path to the directory with directories of tiles
-        transforms : Any, optional
-            transformation applied to images and labels, by default None
-        '''
+    Parameters
+    ----------
+    dirs : List[str]
+        path to the directory with directories of tiles
+    transforms : Any, optional
+        transformation applied to images and labels, by default None
+    '''
+    def __init__(self, dirs: List[str], transforms: Any = None):
         self.img_list = []
         self.label_list = []
         self.dirs = dirs
