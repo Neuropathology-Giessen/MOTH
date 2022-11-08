@@ -6,9 +6,9 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'MOTH'
-copyright = '2022, Thomas Kauer, M.Sc. Jannik Sehring, Dr. Daniel Amsel'
-author = 'Thomas Kauer, M.Sc. Jannik Sehring, Dr. Daniel Amsel'
+project = 'MOTHI'
+copyright = '2022, Thomas Kauer; Jannik Sehring, M.Sc.; Dr. Daniel Amsel'
+author = 'Thomas Kauer, Jannik Sehring, M.Sc., Dr. Daniel Amsel'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

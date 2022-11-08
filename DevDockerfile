@@ -17,6 +17,8 @@ RUN pip install sphinx_autodoc_typehints
 # dev installation if pytorch will be used
 # RUN pip install torch
 # RUN pip install torchvision
+RUN pip install matplotlib
+RUN pip install progress
 
 # set workdir to /home/user and copy local directory
 WORKDIR /home/${user}

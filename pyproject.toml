@@ -7,15 +7,17 @@ build-backend = "setuptools.build_meta"
 name = "mothi"
 version = "0.0.1"
 authors = [
-  { name="Example Author", email="author@example.com" },
+  { name="Thomas Kauer" },
+  { name="Jannik Sehring, M.Sc." },
+  { name="Dr. Daniel Amsel" }
 ]
 description = "mothi example"
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.9"
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)"
 ]
 
 [project.urls]
