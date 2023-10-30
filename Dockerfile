@@ -16,8 +16,8 @@ WORKDIR /home/${user}
 COPY . .
 
 # install QuPath 0.3.2 and set the enviroment variable
-RUN python -m paquo get_qupath --install-path ./ 0.3.2
-ENV PAQUO_QUPATH_DIR=/home/${user}/QuPath-0.3.2
+RUN python -m paquo get_qupath --install-path ./ 0.4.4
+ENV PAQUO_QUPATH_DIR=/home/${user}/QuPath-0.4.4
 
 # set local user... otherwise you can not acces the QuPath project outside of Docker
 RUN useradd -u ${userid} ${user}
