@@ -1,46 +1,45 @@
-''' This modul can be used for tiling in a QuPathProjects without leaving Python '''
+""" This modul can be used for tiling in a QuPathProjects without leaving Python """
 import pathlib
 import platform
-from typing import List, Dict, Tuple, Union, Literal, Iterable, Optional, overload
+from typing import Dict, Iterable, List, Literal, Optional, Tuple, Union, overload
 
+import cv2
 import numpy as np
 from numpy.typing import NDArray
-import cv2
-from tiffslide import TiffSlide
-from shapely import affinity
-from shapely.geometry import Polygon, MultiPolygon, GeometryCollection
-from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
-from shapely.strtree import STRtree
-from shapely.ops import unary_union
-from PIL.Image import Image
-
-from paquo.projects import QuPathProject
 from paquo.classes import QuPathPathClass
+from paquo.hierarchy import PathObjectProxy, QuPathPathObjectHierarchy
 from paquo.images import QuPathProjectImageEntry
-from paquo.hierarchy import QuPathPathObjectHierarchy, PathObjectProxy
 from paquo.pathobjects import QuPathPathAnnotationObject
-from mothi.utils import label_img_to_polys, _round_polygon
+from paquo.projects import QuPathProject
+from PIL.Image import Image
+from shapely import affinity
+from shapely.geometry import GeometryCollection, MultiPolygon, Polygon
+from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
+from shapely.ops import unary_union
+from shapely.strtree import STRtree
+from tiffslide import TiffSlide
 
+from mothi.utils import _round_polygon, label_img_to_polys
 
 ProjectIOMode = Literal["r", "r+", "w", "w+", "a", "a+", "x", "x+"]
 
-class QuPathTilingProject(QuPathProject):
-    ''' load or create a new qupath project
 
-        Parameters
-        ----------
-        path:
-            path to `project.qpproj` file, or its parent directory
-        mode:
-            'r' --> readonly, error if not there \n
-            'r+' --> read/write, error if not there \n
-            'a' = 'a+' --> read/write, create if not there, append if there \n
-            'w' = 'w+' --> read/write, create if not there, truncate if there \n
-            'x' = 'x+' --> read/write, create if not there, error if there
-    '''
-    def __init__(self,
-            path: Union[str, pathlib.Path],
-            mode: ProjectIOMode  = 'r'):
+class QuPathTilingProject(QuPathProject):
+    """load or create a new qupath project
+
+    Parameters
+    ----------
+    path:
+        path to `project.qpproj` file, or its parent directory
+    mode:
+        'r' --> readonly, error if not there \n
+        'r+' --> read/write, error if not there \n
+        'a' = 'a+' --> read/write, create if not there, append if there \n
+        'w' = 'w+' --> read/write, create if not there, truncate if there \n
+        'x' = 'x+' --> read/write, create if not there, error if there
+    """
+
+    def __init__(self, path: Union[str, pathlib.Path], mode: ProjectIOMode = "r"):
         super().__init__(path, mode)
         self._class_dict: Dict[int, QuPathPathClass] = {}
         self._inverse_class_dict: Dict[str, int] = {}
@@ -58,40 +57,39 @@ class QuPathTilingProject(QuPathProject):
         # each roi_id has it's own enumerated annotation_id and path_class
         self.img_annot_dict: Dict[int, Tuple[STRtree, Dict[int, Tuple[int, str]]]] = {}
 
-
     def update_path_classes(self, path_classes: Iterable[QuPathPathClass]) -> None:
-        ''' update the annotation classes and annotation dictionaries of the project
+        """update the annotation classes and annotation dictionaries of the project
 
         Parameters
         ----------
         path_classes:
             annotation classes to set
-        '''
+        """
         self.path_classes = path_classes
         ## overwrite _class_dict and _inverse_class_dict
         self._class_dict = {}
         for i, ann in enumerate(self.path_classes):
             self._class_dict[i] = ann
-        self._inverse_class_dict = {value.id: key for key, value in self._class_dict.items()}
-
+        self._inverse_class_dict = {
+            value.id: key for key, value in self._class_dict.items()
+        }
 
     def update_img_annot_dict(self, img_id: int) -> None:
-        ''' update annotation rois tree for faster shapely queries
+        """update annotation rois tree for faster shapely queries
 
         Parameters
         ----------
         img_id:
             id of image to generate STRtree for
-        '''
+        """
         slide: QuPathProjectImageEntry = self.images[img_id]
         annotations: PathObjectProxy = slide.hierarchy.annotations
         img_ann_list: List[Tuple[Polygon, str]] = [
-            (annot.roi, annot.path_class.id)
-            for annot in annotations
+            (annot.roi, annot.path_class.id) for annot in annotations
         ]
 
         # List[Tuple[Polygon, str]] -> NDArray[List(rois), List(annot_classes)]
-        img_ann_transposed: NDArray = np.array(img_ann_list, dtype = object).transpose()
+        img_ann_transposed: NDArray = np.array(img_ann_list, dtype=object).transpose()
         ## generate Dict to map roi_id to tuple(annnotation_id, anotation_class)
         class_by_id: Dict[int, Tuple[int, str]] = dict(
             (id(ann_poly), (i, img_ann_transposed[1][i]))
@@ -100,33 +98,38 @@ class QuPathTilingProject(QuPathProject):
         img_ann_tree: STRtree = STRtree(img_ann_transposed[0])
         self.img_annot_dict[img_id] = (img_ann_tree, class_by_id)
 
-
     @overload
-    def get_tile(self,
+    def get_tile(
+        self,
         img_id: int,
         location: Tuple[int, int],
         size: Tuple[int, int],
-        downsample_level: int = 0) -> Image:
+        downsample_level: int = 0,
+    ) -> Image:
         ...
 
     @overload
-    def get_tile(self,
+    def get_tile(
+        self,
         img_id: int,
         location: Tuple[int, int],
         size: Tuple[int, int],
         downsample_level: int = 0,
         *,
-        ret_array: Literal[True]) -> NDArray[np.int_]:
+        ret_array: Literal[True],
+    ) -> NDArray[np.int_]:
         ...
 
-    def get_tile(self,
-            img_id: int,
-            location: Tuple[int, int],
-            size: Tuple[int, int],
-            downsample_level: int = 0,
-            *,
-            ret_array: bool = False) -> Union[Image, NDArray[np.int_]]:
-        ''' get tile starting at (x,y) (slide level 0) with given size
+    def get_tile(
+        self,
+        img_id: int,
+        location: Tuple[int, int],
+        size: Tuple[int, int],
+        downsample_level: int = 0,
+        *,
+        ret_array: bool = False,
+    ) -> Union[Image, NDArray[np.int_]]:
+        """get tile starting at (x,y) (slide level 0) with given size
 
         Parameters
         ----------
@@ -147,34 +150,29 @@ class QuPathTilingProject(QuPathProject):
         -------
         :
             requested tile as PIL Image
-        '''
+        """
         slide: QuPathProjectImageEntry = self.images[img_id]
-        slide_url: str = slide.uri.removeprefix('file://')
+        slide_url: str = slide.uri.removeprefix("file://")
         # remove leading '/' on windows systems '/C:/...' -> 'C:/...'
-        if platform.system() == 'Windows':
-            slide_url = slide_url.removeprefix('/')
+        if platform.system() == "Windows":
+            slide_url = slide_url.removeprefix("/")
         # get requested tile
         with TiffSlide(slide_url) as slide_data:
             # if an array is requested, return array
             if ret_array:
                 return slide_data.read_region(
-                    location,
-                    downsample_level,
-                    size,
-                    as_array=True
+                    location, downsample_level, size, as_array=True
                 )
-            return slide_data.read_region(
-                location,
-                downsample_level,
-                size)
+            return slide_data.read_region(location, downsample_level, size)
 
-
-    def get_tile_annot(self,
-            img_id: int,
-            location: Tuple[int, int],
-            size: Tuple[int, int],
-            class_filter: Optional[List[Union[int, str]]] = None) -> List[Tuple[Polygon, str]]:
-        ''' get tile annotations between (x,y) and (x + width, y + height)
+    def get_tile_annot(
+        self,
+        img_id: int,
+        location: Tuple[int, int],
+        size: Tuple[int, int],
+        class_filter: Optional[List[Union[int, str]]] = None,
+    ) -> List[Tuple[Polygon, str]]:
+        """get tile annotations between (x,y) and (x + width, y + height)
 
         Parameters
         ----------
@@ -192,7 +190,7 @@ class QuPathTilingProject(QuPathProject):
         -------
         :
             list of annotations (polygon, annotation_class) in tile
-        '''
+        """
         location_x: int
         location_y: int
         width: int
@@ -200,12 +198,14 @@ class QuPathTilingProject(QuPathProject):
         location_x, location_y = location
         width, height = size
         # Polygon, representing tile
-        polygon_tile: Polygon = Polygon((
-            [location_x, location_y],
-            [location_x + width, location_y],
-            [location_x + width, location_y + height],
-            [location_x, location_y + height]
-        ))
+        polygon_tile: Polygon = Polygon(
+            (
+                [location_x, location_y],
+                [location_x + width, location_y],
+                [location_x + width, location_y + height],
+                [location_x, location_y + height],
+            )
+        )
         tile_intersections: List[Tuple[Polygon, str]] = []
 
         if img_id not in self.img_annot_dict:
@@ -214,8 +214,12 @@ class QuPathTilingProject(QuPathProject):
         ann_tree: STRtree
         index_and_class: Dict[int, Tuple[int, str]]
         ann_tree, index_and_class = self.img_annot_dict[img_id]
-        near_polys: List[BaseGeometry] = list(ann_tree.query(polygon_tile))
-        near_poly_classes: List[str] = [index_and_class[id(poly)][1] for poly in near_polys]
+        near_polys: List[BaseGeometry] = ann_tree.geometries.take(
+            ann_tree.query(polygon_tile)
+        )
+        near_poly_classes: List[str] = [
+            index_and_class[id(poly)][1] for poly in near_polys
+        ]
 
         poly: BaseGeometry
         annot_class: str
@@ -225,13 +229,16 @@ class QuPathTilingProject(QuPathProject):
             if intersection.is_empty:
                 continue
 
-            filter_bool: bool = ((not class_filter) or
-                (annot_class in class_filter) or
-                (self._inverse_class_dict[annot_class] in class_filter))
+            filter_bool: bool = (
+                (not class_filter)
+                or (annot_class in class_filter)
+                or (self._inverse_class_dict[annot_class] in class_filter)
+            )
 
             # filter applies and polygon is a multipolygon
-            if (filter_bool and
-                    isinstance(intersection, (MultiPolygon, GeometryCollection))):
+            if filter_bool and isinstance(
+                intersection, (MultiPolygon, GeometryCollection)
+            ):
                 inter: Union[BaseGeometry, BaseMultipartGeometry]
                 for inter in intersection.geoms:
                     if isinstance(inter, Polygon):
@@ -243,15 +250,16 @@ class QuPathTilingProject(QuPathProject):
 
         return tile_intersections
 
-
-    def get_tile_annot_mask(self,
-            img_id: int,
-            location: Tuple[int, int],
-            size: Tuple[int, int],
-            downsample_level: int = 0,
-            multichannel: bool = False,
-            class_filter: Optional[List[Union[int, str]]] = None) -> NDArray[np.int32]:
-        ''' get tile annotations mask between (x,y) and (x + width, y + height)
+    def get_tile_annot_mask(
+        self,
+        img_id: int,
+        location: Tuple[int, int],
+        size: Tuple[int, int],
+        downsample_level: int = 0,
+        multichannel: bool = False,
+        class_filter: Optional[List[Union[int, str]]] = None,
+    ) -> NDArray[np.int32]:
+        """get tile annotations mask between (x,y) and (x + width, y + height)
 
         Parameters
         ----------
@@ -276,7 +284,7 @@ class QuPathTilingProject(QuPathProject):
             mask [height, width] with an annotation class for each pixel \n
             or binary_mask[num_class, height, width] for multichannels \n
             background class is ignored for multichannels
-        '''
+        """
         location_x: int
         location_y: int
         location_x, location_y = location
@@ -284,29 +292,32 @@ class QuPathTilingProject(QuPathProject):
         height: int
         width, height = size
         downsample_factor: int
-        downsample_factor = 2 ** downsample_level
+        downsample_factor = 2**downsample_level
         # level_0_size needed to get all Polygons in downsampled area
-        level_0_size: Tuple[int, int] = tuple(map(lambda x: x* downsample_factor, size))
+        level_0_size: Tuple[int, int] = tuple(
+            map(lambda x: x * downsample_factor, size)
+        )
         # get all annotations in tile
-        tile_intersections: List[Tuple[Polygon, str]] = self.get_tile_annot(img_id,
-                                                                            location,
-                                                                            level_0_size,
-                                                                            class_filter)
+        tile_intersections: List[Tuple[Polygon, str]] = self.get_tile_annot(
+            img_id, location, level_0_size, class_filter
+        )
 
         # generate NDArray with zeroes where annotation will be drawn
         if multichannel:
-            num_classes: int = len(self.path_classes) -1
-            annot_mask: NDArray[np.int32] = np.zeros((num_classes, height, width), dtype = np.int32)
+            num_classes: int = len(self.path_classes) - 1
+            annot_mask: NDArray[np.int32] = np.zeros(
+                (num_classes, height, width), dtype=np.int32
+            )
 
         else:
             # generate NDArray with zeroes where annotation will be drawn
-            annot_mask: NDArray[np.int32] = np.zeros((height, width), dtype = np.int32)
+            annot_mask: NDArray[np.int32] = np.zeros((height, width), dtype=np.int32)
             ## sort intersections descending by area.
             # Now we can not accidentally overwrite polys with other poly holes
             sorted_intersections: List[Tuple[Polygon, str]] = sorted(
                 tile_intersections,
-                key = lambda tup: Polygon(tup[0].exterior).area,
-                reverse=True
+                key=lambda tup: Polygon(tup[0].exterior).area,
+                reverse=True,
             )
             tile_intersections = sorted_intersections
 
@@ -320,17 +331,17 @@ class QuPathTilingProject(QuPathProject):
                 class_num -= 1
 
             # translate Polygon to (0,0)
-            trans_inter: Polygon = affinity.translate(intersection,
-                                                      location_x * -1,
-                                                      location_y * -1)
+            trans_inter: Polygon = affinity.translate(
+                intersection, location_x * -1, location_y * -1
+            )
             # apply downsampling by scaling the Polygon down
             scale_inter: Polygon = affinity.scale(
                 trans_inter,
-                xfact = 1/downsample_factor,
-                yfact = 1/downsample_factor,
-                origin = (0,0)  # type: ignore
-                                # coords Tuple[int, int] are also valid
-                                # docu: https://shapely.readthedocs.io/en/stable/manual.html#shapely.affinity.scale
+                xfact=1 / downsample_factor,
+                yfact=1 / downsample_factor,
+                origin=(0, 0)  # type: ignore
+                # coords Tuple[int, int] are also valid
+                # docu: https://shapely.readthedocs.io/en/stable/manual.html#shapely.affinity.scale
             )
             # round coordinate points
             exteriors: NDArray[np.int32]
@@ -348,15 +359,16 @@ class QuPathTilingProject(QuPathProject):
 
         return annot_mask
 
-
-    def save_mask_annotations(self,
-            img_id: int,
-            annot_mask: Union[NDArray[np.uint], NDArray[np.int_]],
-            location: Tuple[int, int] = (0,0),
-            downsample_level: int = 0,
-            min_polygon_area: int = 0,
-            multichannel: bool = False) -> None:
-        ''' saves a mask as annotations to QuPath
+    def save_mask_annotations(
+        self,
+        img_id: int,
+        annot_mask: Union[NDArray[np.uint], NDArray[np.int_]],
+        location: Tuple[int, int] = (0, 0),
+        downsample_level: int = 0,
+        min_polygon_area: int = 0,
+        multichannel: bool = False,
+    ) -> None:
+        """saves a mask as annotations to QuPath
 
         Parameters
         ----------
@@ -376,26 +388,24 @@ class QuPathTilingProject(QuPathProject):
         multichannel:
             True: binary image input [num_channels, height, width] \n
             False: labeled image input [height, width]
-        '''
+        """
         slide: QuPathProjectImageEntry = self.images[img_id]
         poly_annot_list: List[Tuple[Union[Polygon, BaseGeometry], int]]
         # get polygons in mask
-        poly_annot_list = label_img_to_polys(annot_mask,
-                                             downsample_level,
-                                             min_polygon_area,
-                                             multichannel)
+        poly_annot_list = label_img_to_polys(
+            annot_mask, downsample_level, min_polygon_area, multichannel
+        )
         annot_poly: Union[Polygon, BaseGeometry]
         annot_class: int
         ## add detected Polygons to the QuPath project
         for annot_poly, annot_class in poly_annot_list:
             slide.hierarchy.add_annotation(
                 affinity.translate(annot_poly, location[0], location[1]),
-                self._class_dict[annot_class]
+                self._class_dict[annot_class],
             )
 
-
     def merge_near_annotations(self, img_id: int, max_dist: Union[float, int]) -> None:
-        ''' merge nearby annotations with equivalent annotation class
+        """merge nearby annotations with equivalent annotation class
 
         Parameters
         ----------
@@ -403,11 +413,11 @@ class QuPathTilingProject(QuPathProject):
             id of the image where annotations will be merged
         max_dist:
             maximal distance up to which the annotations will be merged
-        '''
+        """
         hierarchy: QuPathPathObjectHierarchy = self.images[img_id].hierarchy
         annotations: PathObjectProxy[QuPathPathAnnotationObject] = hierarchy.annotations
         self.update_img_annot_dict(img_id)
-        already_merged: List[int] = [] # save merged indicies
+        already_merged: List[int] = []  # save merged indicies
         ann_tree: STRtree
         class_by_id: Dict[int, Tuple[int, str]]
         # unpack img_annot_dict
@@ -434,9 +444,12 @@ class QuPathTilingProject(QuPathProject):
             nested_annotations: List[BaseGeometry] = [annot_poly_buffered]
             while len(nested_annotations) > 0:
                 annot_poly_buffered = nested_annotations.pop(0)
-                near_polys: List[BaseGeometry] = list(ann_tree.query(annot_poly_buffered))
-                near_poly_index_and_classes: List[Tuple[int, str]] = [class_by_id[id(poly)]
-                                                                      for poly in near_polys]
+                near_polys: List[BaseGeometry] = list(
+                    ann_tree.query(annot_poly_buffered)
+                )
+                near_poly_index_and_classes: List[Tuple[int, str]] = [
+                    class_by_id[id(poly)] for poly in near_polys
+                ]
 
                 # check if nearby polygons are detected
                 if len(near_polys) == 0:
@@ -446,8 +459,8 @@ class QuPathTilingProject(QuPathProject):
                 near_poly_annotation_class: str
                 ## save nearby polygons if they intersect with current polygon
                 for near_poly, (near_poly_index, near_poly_annotation_class) in zip(
-                        near_polys,
-                        near_poly_index_and_classes):
+                    near_polys, near_poly_index_and_classes
+                ):
                     # detected Polygon is already merged
                     # -> no further checks needed
                     if near_poly_index in already_merged:
@@ -461,7 +474,9 @@ class QuPathTilingProject(QuPathProject):
 
                     # check if nearby polygon intersects
                     near_poly_buffered: BaseGeometry = near_poly.buffer(max_dist)
-                    intersects: bool = near_poly_buffered.intersects(annot_poly_buffered)
+                    intersects: bool = near_poly_buffered.intersects(
+                        annot_poly_buffered
+                    )
                     if intersects:
                         annotations_to_merge.append(near_poly_buffered)
                         nested_annotations.append(near_poly_buffered)
@@ -470,9 +485,11 @@ class QuPathTilingProject(QuPathProject):
             ## merge and save annotations
             # discard merged annotations
             if len(annotations_to_merge) > 1:
-                merged_annot: BaseGeometry = unary_union(annotations_to_merge).buffer(-max_dist)
+                merged_annot: BaseGeometry = unary_union(annotations_to_merge).buffer(
+                    -max_dist
+                )
                 hierarchy.add_annotation(
                     merged_annot,
-                    self._class_dict[self._inverse_class_dict[annot_poly_class]]
+                    self._class_dict[self._inverse_class_dict[annot_poly_class]],
                 )
                 annotations.discard(annot)
