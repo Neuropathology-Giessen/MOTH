@@ -6,6 +6,8 @@
 QuPath
 
 # Untracked files
+paper/qp_project/*
+paper/files/*
 
 # Data
 workflow/test/qp_project
