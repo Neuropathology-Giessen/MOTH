@@ -327,8 +327,8 @@ class QuPathTilingProject(QuPathProject):
         for intersection, inter_class in tile_intersections:
             class_num: int = self._inverse_class_dict[inter_class]
             # first class should be on the lowest level for multichannel
-            if multichannel:
-                class_num -= 1
+            if not multichannel:
+                class_num += 1
 
             # translate Polygon to (0,0)
             trans_inter: Polygon = affinity.translate(
@@ -401,7 +401,7 @@ class QuPathTilingProject(QuPathProject):
         for annot_poly, annot_class in poly_annot_list:
             slide.hierarchy.add_annotation(
                 affinity.translate(annot_poly, location[0], location[1]),
-                self._class_dict[annot_class],
+                self._class_dict[annot_class - 1],
             )
 
     def merge_near_annotations(self, img_id: int, max_dist: Union[float, int]) -> None:
