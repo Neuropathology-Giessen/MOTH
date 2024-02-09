@@ -1,13 +1,12 @@
 FROM python:3.9.9
-RUN apt-get -y update
 
 # Args
 ARG user=[username]
 ARG userid=[userid]
 
 # opencv-python essential (not installed in Docker)
-RUN apt-get -y install libgl1-mesa-glx
-RUN apt-get -y install libxtst6
+RUN apt-get -y update && apt-get -y install libgl1 \
+    && apt-get -y install libxtst6
 
 # install sphinx dependencies to build the documentation local
 RUN apt-get -y install python3-sphinx
@@ -29,8 +28,8 @@ COPY . .
 RUN pip install .
 
 # install QuPath 0.3.2 and set the enviroment variable
-RUN python -m paquo get_qupath --install-path ./ 0.4.4
-ENV PATH=${PATH}:/home/${user}/QuPath-0.4.4
+RUN python -m paquo get_qupath --install-path ./ 0.3.0
+ENV PAQUO_QUPATH_DIR=/home/${user}/QuPath-0.3.0
 
 # set local user... otherwise you can not acces the QuPath project outside of Docker
 # also saved files will not be locked with root user permissions
