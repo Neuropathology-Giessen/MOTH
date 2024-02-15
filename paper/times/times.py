@@ -1,4 +1,5 @@
 """ Get the execution times of different operations """
+
 import argparse
 import re
 import timeit
@@ -13,7 +14,8 @@ from numpy.typing import NDArray
 
 from mothi.tiling_projects import QuPathTilingProject
 
-IMAGE_DIR: Path = Path("files")
+IMAGE_DIR = Path("files")
+QP_PROJECT_PATH = Path("times_project")
 REPETITIONS: int = 10
 
 
@@ -72,7 +74,7 @@ if __name__ == "__main__":
     args: argparse.Namespace = parser.parse_args()
 
     time: float
-    qp_project = QuPathTilingProject(Path("qp_project"), mode="a")
+    qp_project = QuPathTilingProject(QP_PROJECT_PATH, mode="a")
     if args.task == "export":
         IMAGE_DIR.mkdir(parents=True, exist_ok=True)
         time = timeit.timeit(

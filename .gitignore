@@ -7,9 +7,10 @@ QuPath
 
 # Untracked files
 paper/qp_project
-paper/files
 paper/comparison_groovy/comp_project
+paper/times/files
 paper/times/moth.jpg
+paper/times/time_project
 
 # Data
 workflow/test/qp_project
