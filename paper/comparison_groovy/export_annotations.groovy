@@ -8,7 +8,7 @@ mkdirs(pathOutput)
 
 
 def labelServer = new LabeledImageServer.Builder(imageData)
-    .backgroundLabel(0, ColorTools.WHITE)
+    .backgroundLabel(0, ColorTools.BLACK)
     .addLabel('Tumor',1)
     .build()
     
