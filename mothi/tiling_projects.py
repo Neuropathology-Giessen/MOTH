@@ -75,7 +75,7 @@ class QuPathTilingProject(QuPathProject):
             value.id: key for key, value in self._class_dict.items()
         }
 
-    def update_img_annot_dict(self, img_id: int) -> None:
+    def _update_img_annot_dict(self, img_id: int) -> None:
         """update annotation rois tree for faster shapely queries
 
         Parameters
@@ -151,10 +151,7 @@ class QuPathTilingProject(QuPathProject):
             requested tile as PIL Image
         """
         slide: QuPathProjectImageEntry = self.images[img_id]
-        slide_url: str = slide.uri.removeprefix("file://")
-        # remove leading '/' on windows systems '/C:/...' -> 'C:/...'
-        if platform.system() == "Windows":
-            slide_url = slide_url.removeprefix("/")
+        slide_url: str = self.__prepare_image_url(slide)
         # get requested tile
         with TiffSlide(slide_url) as slide_data:
             # if an array is requested, return array
@@ -208,7 +205,7 @@ class QuPathTilingProject(QuPathProject):
         tile_intersections: List[Tuple[Polygon, str]] = []
 
         if img_id not in self.img_annot_dict:
-            self.update_img_annot_dict(img_id)
+            self._update_img_annot_dict(img_id)
 
         ann_tree: STRtree
         index_and_class: Dict[int, Tuple[int, str]]
@@ -290,8 +287,10 @@ class QuPathTilingProject(QuPathProject):
         width: int
         height: int
         width, height = size
-        downsample_factor: int
-        downsample_factor = 2**downsample_level
+
+        downsample_factor: float = self.__get_downsample_factor(
+            img_id, downsample_level
+        )
         # level_0_size needed to get all Polygons in downsampled area
         level_0_size: Tuple[int, int] = cast(
             Tuple[int, int], tuple(x * downsample_factor for x in size)
@@ -388,11 +387,14 @@ class QuPathTilingProject(QuPathProject):
             True: binary image input [num_channels, height, width] \n
             False: labeled image input [height, width]
         """
+        downsample_factor: float = self.__get_downsample_factor(
+            img_id, downsample_level
+        )
         slide: QuPathProjectImageEntry = self.images[img_id]
         poly_annot_list: List[Tuple[Union[Polygon, BaseGeometry], int]]
         # get polygons in mask
         poly_annot_list = label_img_to_polys(
-            annot_mask, downsample_level, min_polygon_area, multichannel
+            annot_mask, downsample_factor, min_polygon_area, multichannel
         )
         annot_poly: Union[Polygon, BaseGeometry]
         annot_class: int
@@ -415,7 +417,7 @@ class QuPathTilingProject(QuPathProject):
         """
         hierarchy: QuPathPathObjectHierarchy = self.images[img_id].hierarchy
         annotations: PathObjectProxy[QuPathPathAnnotationObject] = hierarchy.annotations
-        self.update_img_annot_dict(img_id)
+        self._update_img_annot_dict(img_id)
         already_merged: List[int] = []  # save merged indicies
         ann_tree: STRtree
         class_by_id: Dict[int, Tuple[int, str]]
@@ -494,3 +496,39 @@ class QuPathTilingProject(QuPathProject):
                     self._class_dict[self._inverse_class_dict[annot_poly_class]],
                 )
                 annotations.discard(annot)
+
+    def __prepare_image_url(self, slide: QuPathProjectImageEntry) -> str:
+        """prepare image url for tiling
+
+        Parameters
+        ----------
+        slide:
+            QuPathProjectImageEntry to get the url from
+
+        Returns
+        -------
+        :
+            prepared image url
+        """
+        slide_url: str = slide.uri.removeprefix("file://")
+        # remove leading '/' on windows systems '/C:/...' -> 'C:/...'
+        if platform.system() == "Windows":
+            slide_url = slide_url.removeprefix("/")
+        return slide_url
+
+    def __get_downsample_factor(self, img_id: int, downsample_level: int) -> float:
+        """get downsample factor for a given image and downsample level
+
+        Parameters
+        ----------
+        img_id:
+            id of the image
+        downsample_level:
+            level for downsampling
+
+        Returns
+        -------
+        :
+            downsample factor
+        """
+        return self.images[img_id].downsample_levels[downsample_level]["downsample"]

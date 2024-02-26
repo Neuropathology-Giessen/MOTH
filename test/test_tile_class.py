@@ -140,16 +140,16 @@ class TestTileImport(unittest.TestCase):
             ),
             Polygon([[0, 10], [0, 50], [10, 50], [10, 10], [0, 10]]),
         ]
-        poly_with_class_single: List[
-            Tuple[Union[Polygon, BaseGeometry], int]
-        ] = label_img_to_polys(
-            self.expected_singlemask, downsample_level=1, multichannel=False
+        poly_with_class_single: List[Tuple[Union[Polygon, BaseGeometry], int]] = (
+            label_img_to_polys(
+                self.expected_singlemask, downsample_factor=2, multichannel=False
+            )
         )
         self.assertTrue(len(poly_with_class_single) == 2)
         for i, (poly, _) in enumerate(poly_with_class_single):
             self.assertTrue(poly.simplify(0).equals(expected_polygons[i]))
         poly_with_class_multi = label_img_to_polys(
-            self.expected_multimask, downsample_level=1, multichannel=True
+            self.expected_multimask, downsample_factor=2, multichannel=True
         )
         self.assertTrue(len(poly_with_class_multi) == 2)
         for i, (poly, _) in enumerate(poly_with_class_multi):
@@ -207,9 +207,9 @@ class TestTileUtils(unittest.TestCase):
         self.white_image: QuPathProjectImageEntry = self.qp_project.images[
             self.white_image_id
         ]
-        self.original_path_classes: Tuple[
-            QuPathPathClass, ...
-        ] = self.qp_project.path_classes
+        self.original_path_classes: Tuple[QuPathPathClass, ...] = (
+            self.qp_project.path_classes
+        )
 
     def test_update_path_classes(self):
         new_path_classes: Tuple[QuPathPathClass, ...] = (
@@ -223,14 +223,14 @@ class TestTileUtils(unittest.TestCase):
             2: new_path_classes[2],
         }
 
-        self.qp_project.update_path_classes(new_path_classes)
+        self.qp_project.path_classes = new_path_classes
         self.assertEqual(self.qp_project.path_classes, new_path_classes)
         self.assertEqual(self.qp_project._class_dict, class_dict)
 
     def test_update_img_annot_dict(self):
         # use own random annotations
         self.assertEqual(self.qp_project.img_annot_dict, {})
-        self.qp_project.update_img_annot_dict(self.white_image_id)
+        self.qp_project._update_img_annot_dict(self.white_image_id)
         search_tree: STRtree
         search_tree_dict: Dict[int, Tuple[int, str]]
         search_tree, search_tree_dict = self.qp_project.img_annot_dict[
