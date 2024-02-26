@@ -58,16 +58,17 @@ class QuPathTilingProject(QuPathProject):
         # each roi_id has it's own enumerated annotation_id and path_class
         self.img_annot_dict: Dict[int, Tuple[STRtree, Dict[int, Tuple[int, str]]]] = {}
 
-    def update_path_classes(self, path_classes: Iterable[QuPathPathClass]) -> None:
-        """update the annotation classes and annotation dictionaries of the project
+
+    @QuPathProject.path_classes.setter
+    def path_classes(self, path_classes: Iterable[QuPathPathClass]) -> None:
+        """update the annotation classes of the project
 
         Parameters
         ----------
         path_classes:
             annotation classes to set
         """
-        self.path_classes = path_classes
-        ## overwrite _class_dict and _inverse_class_dict
+        QuPathProject.path_classes.__set__(self, path_classes)
         self._class_dict = {}
         for i, ann in enumerate(self.path_classes):
             self._class_dict[i] = ann
