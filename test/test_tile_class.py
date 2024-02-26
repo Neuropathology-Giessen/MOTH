@@ -37,7 +37,7 @@ class TestTileImportExportCicle(unittest.TestCase):
             TEMPORARY_QP_PATH, "x+"
         )
         self.temporary_project.add_image(SLIDE_PATH)
-        self.temporary_project.update_path_classes(self.qp_project.path_classes)
+        self.temporary_project.path_classes = self.qp_project.path_classes
 
     def test_import_export_cycle(self):
         first_export: NDArray[np.int32] = self.qp_project.get_tile_annot_mask(
@@ -126,7 +126,7 @@ class TestTileImport(unittest.TestCase):
             TEMPORARY_QP_PATH, "x+"
         )
         self.temp_qp_project.add_image(SLIDE_PATH)
-        self.temp_qp_project.update_path_classes(self.qp_project.path_classes)
+        self.temp_qp_project.path_classes = self.qp_project.path_classes
         with open(EXPECTED_MASK_PATH, "rb") as mask_file:
             expected_masks = pickle.load(mask_file)
         self.expected_singlemask: NDArray[np.uint8] = expected_masks[0]
