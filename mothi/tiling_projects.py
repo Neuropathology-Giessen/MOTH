@@ -2,7 +2,7 @@
 
 import pathlib
 import platform
-from typing import Dict, Iterable, List, Literal, Optional, Tuple, Union, overload
+from typing import Dict, Iterable, List, Literal, Optional, Tuple, Union, cast, overload
 
 import cv2
 import numpy as np
@@ -293,8 +293,8 @@ class QuPathTilingProject(QuPathProject):
         downsample_factor: int
         downsample_factor = 2**downsample_level
         # level_0_size needed to get all Polygons in downsampled area
-        level_0_size: Tuple[int, int] = tuple(
-            map(lambda x: x * downsample_factor, size)
+        level_0_size: Tuple[int, int] = cast(
+            Tuple[int, int], tuple(x * downsample_factor for x in size)
         )
         # get all annotations in tile
         tile_intersections: List[Tuple[Polygon, str]] = self.get_tile_annot(
@@ -349,12 +349,12 @@ class QuPathTilingProject(QuPathProject):
 
             # draw rounded coordinate points
             if multichannel:
-                cv2.fillPoly(annot_mask[class_num], [exteriors], 1)
-                cv2.fillPoly(annot_mask[class_num], interiors, 0)
+                cv2.fillPoly(annot_mask[class_num], [exteriors], [1])
+                cv2.fillPoly(annot_mask[class_num], interiors, [0])
 
             else:
-                cv2.fillPoly(annot_mask, [exteriors], class_num)
-                cv2.fillPoly(annot_mask, interiors, 0)
+                cv2.fillPoly(annot_mask, [exteriors], [class_num])
+                cv2.fillPoly(annot_mask, interiors, [0])
 
         return annot_mask
 
@@ -431,7 +431,9 @@ class QuPathTilingProject(QuPathProject):
                 annotations.discard(annot)
                 continue
             annot_poly: BaseGeometry = annot.roi
-            annot_poly_class: str = annot.path_class.id
+            annot_poly_class: str = (
+                annot.path_class.id if annot.path_class else "Undefined"
+            )
             annot_poly_buffered: BaseGeometry = annot_poly.buffer(max_dist)
 
             # save annotation to merge (initial: current annotation of the loop)

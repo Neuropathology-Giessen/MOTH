@@ -1,4 +1,6 @@
-""" util function supporting the QuPathTilingProject class. Function also can be useful for different use cases """
+""" Util function supporting the QuPathTilingProject class. 
+    Function also can be useful for different use cases 
+"""
 
 from typing import Any, List, Tuple, Union
 
@@ -62,7 +64,7 @@ def label_img_to_polys(
         hierarchy: NDArray[np.int_]
         contours, hierarchy = cv2.findContours(
             it_img, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE
-        )
+        )  # type: ignore
         contours = tuple(map(np.squeeze, contours))
         if len(contours) == 0:
             continue
@@ -94,7 +96,9 @@ def label_img_to_polys(
                 holes: List[NDArray[np.int_]] = []
                 hole_poly: Polygon = Polygon(
                     Polygon(contours[child_id]).buffer(
-                        -1, join_style=JOIN_STYLE.mitre, cap_style=CAP_STYLE.square
+                        -1,
+                        join_style=JOIN_STYLE.mitre,  # type: ignore
+                        cap_style=CAP_STYLE.square,  # type: ignore
                     )
                 )
                 holes.append(
@@ -110,7 +114,9 @@ def label_img_to_polys(
                 while next_child_id != -1:
                     hole_poly = Polygon(
                         Polygon(contours[child_id]).buffer(
-                            -1, join_style=JOIN_STYLE.mitre, cap_style=CAP_STYLE.square
+                            -1,
+                            join_style=JOIN_STYLE.mitre,  # type: ignore
+                            cap_style=CAP_STYLE.square,  # type: ignore
                         )
                     )
                     holes.append(
@@ -130,8 +136,8 @@ def label_img_to_polys(
                 poly,
                 xfact=1 * downsample_factor,
                 yfact=1 * downsample_factor,
-                origin=(0, 0),
-            )  # type: ignore
+                origin=(0, 0),  # type: ignore
+            )
             # coords Tuple[int, int] are also valid
             # docu: https://shapely.readthedocs.io/en/stable/manual.html#shapely.affinity.scale
             if not poly.is_valid:
