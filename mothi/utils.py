@@ -16,7 +16,7 @@ from shapely.validation import make_valid
 
 def label_img_to_polys(
     label_img: Union[NDArray[np.uint], NDArray[np.int_]],
-    downsample_level: int = 0,
+    downsample_factor: float = 0,
     min_polygon_area: Union[float, int] = 0,
     multichannel: bool = False,
 ) -> List[Tuple[Union[Polygon, BaseGeometry], int]]:
@@ -28,8 +28,8 @@ def label_img_to_polys(
             mask [height, width] with an annotation class for each pixel \n
             or [num_class, height, width] for multilabels \n
             background class is ignored for multilabels
-        downsample_level:
-            level for downsampling
+        downsample_factor:
+            factor for downsampling
         min_polygon_area:
             minimal polygon area to save polygon
         multichannel:
@@ -40,7 +40,6 @@ def label_img_to_polys(
         :
             list of detected polygons with their annotationclass number [(polygon, annot_cls), ...]
     """
-    downsample_factor: int = 2**downsample_level
     poly_labels: List[Tuple[Union[Polygon, BaseGeometry], int]] = []
 
     # range up to the highest annotated class id
