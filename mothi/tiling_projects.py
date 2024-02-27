@@ -2,6 +2,7 @@
 
 import pathlib
 import platform
+from textwrap import dedent
 from typing import Dict, Iterable, List, Literal, Optional, Tuple, Union, cast, overload
 
 import cv2
@@ -57,7 +58,6 @@ class QuPathTilingProject(QuPathProject):
         # roi's in the tree are identified by their id
         # each roi_id has it's own enumerated annotation_id and path_class
         self.img_annot_dict: Dict[int, Tuple[STRtree, Dict[int, Tuple[int, str]]]] = {}
-
 
     @QuPathProject.path_classes.setter
     def path_classes(self, path_classes: Iterable[QuPathPathClass]) -> None:
@@ -532,4 +532,13 @@ class QuPathTilingProject(QuPathProject):
         :
             downsample factor
         """
-        return self.images[img_id].downsample_levels[downsample_level]["downsample"]
+        try:
+            return self.images[img_id].downsample_levels[downsample_level]["downsample"]
+        except IndexError as exc:
+            raise ValueError(
+                dedent(
+                    f"""\
+                    Downsample level '{downsample_level}' not available for image [{img_id}].
+                    Available levels: {self.images[img_id].downsample_levels}"""
+                )
+            ) from exc
