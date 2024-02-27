@@ -403,7 +403,7 @@ class QuPathTilingProject(QuPathProject):
         for annot_poly, annot_class in poly_annot_list:
             slide.hierarchy.add_annotation(
                 affinity.translate(annot_poly, location[0], location[1]),
-                self._class_dict[annot_class - 1],
+                self._class_dict[annot_class],
             )
 
     def merge_near_annotations(self, img_id: int, max_dist: Union[float, int]) -> None:

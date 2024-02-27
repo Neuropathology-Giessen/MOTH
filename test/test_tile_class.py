@@ -104,11 +104,11 @@ class TestTileExport(unittest.TestCase):
 
     def test_get_tile_annot_mask(self):
         single_mask: NDArray[np.int_] = self.qp_project.get_tile_annot_mask(
-            0, (500, 500), (25, 25), downsample_level=1, multichannel=False
+            0, (500, 500), (50, 50), multichannel=False
         )
         self.assertTrue(np.array_equal(self.expected_singlemask, single_mask))
         multi_mask: NDArray[np.int_] = self.qp_project.get_tile_annot_mask(
-            0, (500, 500), (25, 25), downsample_level=1, multichannel=True
+            0, (500, 500), (50, 50), multichannel=True
         )
         self.assertTrue(np.array_equal(self.expected_multimask, multi_mask))
 
@@ -136,21 +136,17 @@ class TestTileImport(unittest.TestCase):
     def test_label_img_to_polys(self):
         # check for correct polygons
         expected_polygons: List[Polygon] = [
-            Polygon(
-                [[10, 0], [10, 10], [10, 10], [10, 50], [50, 50], [50, 0], [10, 0]]
-            ),
+            Polygon([[10, 0], [10, 50], [50, 50], [50, 0], [10, 0]]),
             Polygon([[0, 10], [0, 50], [10, 50], [10, 10], [0, 10]]),
         ]
         poly_with_class_single: List[Tuple[Union[Polygon, BaseGeometry], int]] = (
-            label_img_to_polys(
-                self.expected_singlemask, downsample_factor=2, multichannel=False
-            )
+            label_img_to_polys(self.expected_singlemask, multichannel=False)
         )
         self.assertTrue(len(poly_with_class_single) == 2)
         for i, (poly, _) in enumerate(poly_with_class_single):
             self.assertTrue(poly.simplify(0).equals(expected_polygons[i]))
         poly_with_class_multi = label_img_to_polys(
-            self.expected_multimask, downsample_factor=2, multichannel=True
+            self.expected_multimask, multichannel=True
         )
         self.assertTrue(len(poly_with_class_multi) == 2)
         for i, (poly, _) in enumerate(poly_with_class_multi):
