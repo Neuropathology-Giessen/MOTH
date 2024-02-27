@@ -16,7 +16,7 @@ from shapely.validation import make_valid
 
 def label_img_to_polys(
     label_img: Union[NDArray[np.uint], NDArray[np.int_]],
-    downsample_factor: float = 0,
+    downsample_factor: float = 1,
     min_polygon_area: Union[float, int] = 0,
     multichannel: bool = False,
 ) -> List[Tuple[Union[Polygon, BaseGeometry], int]]:
@@ -142,8 +142,12 @@ def label_img_to_polys(
             if not poly.is_valid:
                 poly = make_valid(poly)
             if poly.area > min_polygon_area:
-                poly_labels.append((poly, class_id))
-
+                poly_labels.append(
+                    (
+                        poly,
+                        class_id - 1,  # class_id -1 because to ignore background class
+                    )
+                )
     return poly_labels
 
 
