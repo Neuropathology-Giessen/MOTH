@@ -1,7 +1,9 @@
 """ This modul can be used for tiling in a QuPathProjects without leaving Python """
+
 import pathlib
 import platform
-from typing import Dict, Iterable, List, Literal, Optional, Tuple, Union, overload
+from textwrap import dedent
+from typing import Dict, Iterable, List, Literal, Optional, Tuple, Union, cast, overload
 
 import cv2
 import numpy as np
@@ -57,16 +59,16 @@ class QuPathTilingProject(QuPathProject):
         # each roi_id has it's own enumerated annotation_id and path_class
         self.img_annot_dict: Dict[int, Tuple[STRtree, Dict[int, Tuple[int, str]]]] = {}
 
-    def update_path_classes(self, path_classes: Iterable[QuPathPathClass]) -> None:
-        """update the annotation classes and annotation dictionaries of the project
+    @QuPathProject.path_classes.setter
+    def path_classes(self, path_classes: Iterable[QuPathPathClass]) -> None:
+        """update the annotation classes of the project
 
         Parameters
         ----------
         path_classes:
             annotation classes to set
         """
-        self.path_classes = path_classes
-        ## overwrite _class_dict and _inverse_class_dict
+        QuPathProject.path_classes.__set__(self, path_classes)
         self._class_dict = {}
         for i, ann in enumerate(self.path_classes):
             self._class_dict[i] = ann
@@ -74,7 +76,7 @@ class QuPathTilingProject(QuPathProject):
             value.id: key for key, value in self._class_dict.items()
         }
 
-    def update_img_annot_dict(self, img_id: int) -> None:
+    def _update_img_annot_dict(self, img_id: int) -> None:
         """update annotation rois tree for faster shapely queries
 
         Parameters
@@ -105,8 +107,7 @@ class QuPathTilingProject(QuPathProject):
         location: Tuple[int, int],
         size: Tuple[int, int],
         downsample_level: int = 0,
-    ) -> Image:
-        ...
+    ) -> Image: ...
 
     @overload
     def get_tile(
@@ -117,8 +118,7 @@ class QuPathTilingProject(QuPathProject):
         downsample_level: int = 0,
         *,
         ret_array: Literal[True],
-    ) -> NDArray[np.int_]:
-        ...
+    ) -> NDArray[np.int_]: ...
 
     def get_tile(
         self,
@@ -152,10 +152,7 @@ class QuPathTilingProject(QuPathProject):
             requested tile as PIL Image
         """
         slide: QuPathProjectImageEntry = self.images[img_id]
-        slide_url: str = slide.uri.removeprefix("file://")
-        # remove leading '/' on windows systems '/C:/...' -> 'C:/...'
-        if platform.system() == "Windows":
-            slide_url = slide_url.removeprefix("/")
+        slide_url: str = self.__prepare_image_url(slide)
         # get requested tile
         with TiffSlide(slide_url) as slide_data:
             # if an array is requested, return array
@@ -209,7 +206,7 @@ class QuPathTilingProject(QuPathProject):
         tile_intersections: List[Tuple[Polygon, str]] = []
 
         if img_id not in self.img_annot_dict:
-            self.update_img_annot_dict(img_id)
+            self._update_img_annot_dict(img_id)
 
         ann_tree: STRtree
         index_and_class: Dict[int, Tuple[int, str]]
@@ -291,11 +288,13 @@ class QuPathTilingProject(QuPathProject):
         width: int
         height: int
         width, height = size
-        downsample_factor: int
-        downsample_factor = 2**downsample_level
+
+        downsample_factor: float = self.__get_downsample_factor(
+            img_id, downsample_level
+        )
         # level_0_size needed to get all Polygons in downsampled area
-        level_0_size: Tuple[int, int] = tuple(
-            map(lambda x: x * downsample_factor, size)
+        level_0_size: Tuple[int, int] = cast(
+            Tuple[int, int], tuple(x * downsample_factor for x in size)
         )
         # get all annotations in tile
         tile_intersections: List[Tuple[Polygon, str]] = self.get_tile_annot(
@@ -339,7 +338,7 @@ class QuPathTilingProject(QuPathProject):
                 trans_inter,
                 xfact=1 / downsample_factor,
                 yfact=1 / downsample_factor,
-                origin=(0, 0)  # type: ignore
+                origin=(0, 0),  # type: ignore
                 # coords Tuple[int, int] are also valid
                 # docu: https://shapely.readthedocs.io/en/stable/manual.html#shapely.affinity.scale
             )
@@ -350,12 +349,12 @@ class QuPathTilingProject(QuPathProject):
 
             # draw rounded coordinate points
             if multichannel:
-                cv2.fillPoly(annot_mask[class_num], [exteriors], 1)
-                cv2.fillPoly(annot_mask[class_num], interiors, 0)
+                cv2.fillPoly(annot_mask[class_num], [exteriors], [1])
+                cv2.fillPoly(annot_mask[class_num], interiors, [0])
 
             else:
-                cv2.fillPoly(annot_mask, [exteriors], class_num)
-                cv2.fillPoly(annot_mask, interiors, 0)
+                cv2.fillPoly(annot_mask, [exteriors], [class_num])
+                cv2.fillPoly(annot_mask, interiors, [0])
 
         return annot_mask
 
@@ -389,11 +388,14 @@ class QuPathTilingProject(QuPathProject):
             True: binary image input [num_channels, height, width] \n
             False: labeled image input [height, width]
         """
+        downsample_factor: float = self.__get_downsample_factor(
+            img_id, downsample_level
+        )
         slide: QuPathProjectImageEntry = self.images[img_id]
         poly_annot_list: List[Tuple[Union[Polygon, BaseGeometry], int]]
         # get polygons in mask
         poly_annot_list = label_img_to_polys(
-            annot_mask, downsample_level, min_polygon_area, multichannel
+            annot_mask, downsample_factor, min_polygon_area, multichannel
         )
         annot_poly: Union[Polygon, BaseGeometry]
         annot_class: int
@@ -401,7 +403,7 @@ class QuPathTilingProject(QuPathProject):
         for annot_poly, annot_class in poly_annot_list:
             slide.hierarchy.add_annotation(
                 affinity.translate(annot_poly, location[0], location[1]),
-                self._class_dict[annot_class - 1],
+                self._class_dict[annot_class],
             )
 
     def merge_near_annotations(self, img_id: int, max_dist: Union[float, int]) -> None:
@@ -416,7 +418,7 @@ class QuPathTilingProject(QuPathProject):
         """
         hierarchy: QuPathPathObjectHierarchy = self.images[img_id].hierarchy
         annotations: PathObjectProxy[QuPathPathAnnotationObject] = hierarchy.annotations
-        self.update_img_annot_dict(img_id)
+        self._update_img_annot_dict(img_id)
         already_merged: List[int] = []  # save merged indicies
         ann_tree: STRtree
         class_by_id: Dict[int, Tuple[int, str]]
@@ -432,7 +434,9 @@ class QuPathTilingProject(QuPathProject):
                 annotations.discard(annot)
                 continue
             annot_poly: BaseGeometry = annot.roi
-            annot_poly_class: str = annot.path_class.id
+            annot_poly_class: str = (
+                annot.path_class.id if annot.path_class else "Undefined"
+            )
             annot_poly_buffered: BaseGeometry = annot_poly.buffer(max_dist)
 
             # save annotation to merge (initial: current annotation of the loop)
@@ -444,7 +448,7 @@ class QuPathTilingProject(QuPathProject):
             nested_annotations: List[BaseGeometry] = [annot_poly_buffered]
             while len(nested_annotations) > 0:
                 annot_poly_buffered = nested_annotations.pop(0)
-                near_polys: List[BaseGeometry] = list(
+                near_polys: List[BaseGeometry] = ann_tree.geometries.take(
                     ann_tree.query(annot_poly_buffered)
                 )
                 near_poly_index_and_classes: List[Tuple[int, str]] = [
@@ -493,3 +497,48 @@ class QuPathTilingProject(QuPathProject):
                     self._class_dict[self._inverse_class_dict[annot_poly_class]],
                 )
                 annotations.discard(annot)
+
+    def __prepare_image_url(self, slide: QuPathProjectImageEntry) -> str:
+        """prepare image url for tiling
+
+        Parameters
+        ----------
+        slide:
+            QuPathProjectImageEntry to get the url from
+
+        Returns
+        -------
+        :
+            prepared image url
+        """
+        slide_url: str = slide.uri.removeprefix("file://")
+        # remove leading '/' on windows systems '/C:/...' -> 'C:/...'
+        if platform.system() == "Windows":
+            slide_url = slide_url.removeprefix("/")
+        return slide_url
+
+    def __get_downsample_factor(self, img_id: int, downsample_level: int) -> float:
+        """get downsample factor for a given image and downsample level
+
+        Parameters
+        ----------
+        img_id:
+            id of the image
+        downsample_level:
+            level for downsampling
+
+        Returns
+        -------
+        :
+            downsample factor
+        """
+        try:
+            return self.images[img_id].downsample_levels[downsample_level]["downsample"]
+        except IndexError as exc:
+            raise ValueError(
+                dedent(
+                    f"""\
+                    Downsample level '{downsample_level}' not available for image [{img_id}].
+                    Available levels: {self.images[img_id].downsample_levels}"""
+                )
+            ) from exc
