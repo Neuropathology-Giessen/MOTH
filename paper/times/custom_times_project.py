@@ -17,6 +17,7 @@ from tifffile import imwrite
 
 QP_PROJECT_PATH = Path("time_project")
 QP_MODE = "x"
+MOTH_DATA_PATH = Path("../moth/moth_data.json")
 
 # clear existing project
 if os.path.isdir(QP_PROJECT_PATH):
@@ -41,7 +42,7 @@ qp_project.path_classes = (tumor_path_class,)
 
 # add moth polygon
 image_hierarchy: QuPathPathObjectHierarchy = qp_project.images[0].hierarchy
-with open("moth_data.json", "r") as moth_data_file:
+with open(MOTH_DATA_PATH, "r") as moth_data_file:
     moth_data = json.load(moth_data_file)
     moth = Polygon(
         tuple(
@@ -68,7 +69,7 @@ subprocess_command: list[str] = [
 try:
     subprocess.run(subprocess_command, check=True)
 except FileNotFoundError as err:
-    print("Failed to run the Groovy script")
+    print("Failed to run the Groovy script. Retrying with QuPath added to PATH")
     qupath_exec_path: str = str(Path(os.environ["PAQUO_QUPATH_DIR"], "bin"))
     os.environ["PATH"] += os.pathsep + qupath_exec_path
     subprocess.run(["chmod", "u+x", str(Path(qupath_exec_path, "QuPath"))], check=True)
