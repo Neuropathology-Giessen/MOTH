@@ -100,13 +100,14 @@ def label_img_to_polys(
                         cap_style=CAP_STYLE.square,  # type: ignore
                     )
                 )
-                holes.append(
-                    np.apply_along_axis(
-                        lambda coords: np.array(coords).round().astype(np.int_),
-                        0,
-                        hole_poly.exterior.coords,  # type: ignore
+                if not hole_poly.is_empty:
+                    holes.append(
+                        np.apply_along_axis(
+                            lambda coords: np.array(coords).round().astype(np.int_),
+                            0,
+                            hole_poly.exterior.coords,  # type: ignore
+                        )
                     )
-                )
                 ## search for further childs
                 # further childs are listed by next in hierarchy of a known child
                 next_child_id: int = hierarchy[0][child_id][0]
@@ -118,6 +119,9 @@ def label_img_to_polys(
                             cap_style=CAP_STYLE.square,  # type: ignore
                         )
                     )
+                    if hole_poly.is_empty:
+                        next_child_id = hierarchy[0][next_child_id][0]
+                        continue
                     holes.append(
                         np.apply_along_axis(
                             lambda coords: np.array(coords).round().astype(np.int_),
@@ -128,7 +132,9 @@ def label_img_to_polys(
                     next_child_id = hierarchy[0][next_child_id][0]
                 # create polygon with holes
                 poly = Polygon(contours[current_id], holes)
-                poly = Polygon(*_round_polygon(poly, export=False))
+                if not poly.is_valid:
+                    make_valid(poly)
+                poly = make_valid(Polygon(*_round_polygon(poly, export=False)))
 
             # scale poly to level 0 (no downsampling) size
             poly = affinity.scale(
