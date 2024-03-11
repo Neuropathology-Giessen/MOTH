@@ -253,31 +253,35 @@ class QuPathTilingProject(QuPathProject):
         location: Tuple[int, int],
         size: Tuple[int, int],
         downsample_level: int = 0,
+        *,
         multichannel: bool = False,
         class_filter: Optional[List[Union[int, str]]] = None,
+        downsample_level_power_of: Optional[int] = None,
     ) -> NDArray[np.int32]:
         """get tile annotations mask between (x,y) and (x + width, y + height)
 
         Parameters
         ----------
-        img_id:
+        img_id : int
             id of image from which the tile annotation mask will be extracted
-        location:
+        location : Tuple[int, int]
             (x, y) coordinates for the top left pixel in the tile \n
             pixel location without downsampling
-        size:
+        size : Tuple[int, int]
             (width, height) for the tile
-        downsample_level:
-            level for downsampling
-        multichannel:
+        downsample_level : int, optional
+            level for downsampling, by default 0
+        multichannel : bool, optional
             True: create binary images [num_channels, height, width] \n
-            False: create labeled image [height, width]
-        class_filter:
-            list of annotationclass names or id's to filter by
+            False: create labeled image [height, width], by default False
+        class_filter : Optional[List[Union[int, str]]], optional
+            list of annotationclass names or id's to filter by, by default None
+        downsample_level_power_of : Optional[int], optional
+            compute custom downsample factor with this value to the power of the downsample_level, by default None
 
         Returns
         -------
-        :
+        NDArray[np.int32]
             mask [height, width] with an annotation class for each pixel \n
             or binary_mask[num_class, height, width] for multichannels \n
             background class is ignored for multichannels
@@ -290,8 +294,9 @@ class QuPathTilingProject(QuPathProject):
         width, height = size
 
         downsample_factor: float = self.__get_downsample_factor(
-            img_id, downsample_level
+            downsample_level, img_id=img_id, power_of=downsample_level_power_of
         )
+
         # level_0_size needed to get all Polygons in downsampled area
         level_0_size: Tuple[int, int] = cast(
             Tuple[int, int], tuple(x * downsample_factor for x in size)
@@ -366,30 +371,34 @@ class QuPathTilingProject(QuPathProject):
         downsample_level: int = 0,
         min_polygon_area: int = 0,
         multichannel: bool = False,
+        downsample_level_power_of: Optional[int] = None,
     ) -> None:
         """saves a mask as annotations to QuPath
 
         Parameters
         ----------
-        img_id:
+        img_id : int
             id of image to add annotations
-        annot_mask:
+        annot_mask : Union[NDArray[np.uint], NDArray[np.int_]]
             mask [height, width] with an annotation class for each pixel \n
             or [num_class, height, width] for multilabels \n
             background class is ignored for multilabels
-        location:
+        location : Tuple[int, int], optional
             (x, y) coordinates for the top left pixel in the image \n
-            pixel location without downsampling
-        downsample_level:
-            level for downsampling
-        min_polygon_area:
-            minimal area for polygons to be saved
-        multichannel:
+            pixel location without downsampling, by default (0, 0)
+        downsample_level : int, optional
+            level for downsampling, by default 0
+        min_polygon_area : int, optional
+            minimal area for polygons to be saved, by default 0
+        multichannel : bool, optional
             True: binary image input [num_channels, height, width] \n
-            False: labeled image input [height, width]
+            False: labeled image input [height, width], by default False
+        downsample_level_power_of : Optional[int], optional
+            compute custom downsample factor with this value to the power of the downsample_level, by default None
         """
+
         downsample_factor: float = self.__get_downsample_factor(
-            img_id, downsample_level
+            downsample_level, img_id=img_id, power_of=downsample_level_power_of
         )
         slide: QuPathProjectImageEntry = self.images[img_id]
         poly_annot_list: List[Tuple[Union[Polygon, BaseGeometry], int]]
@@ -517,21 +526,41 @@ class QuPathTilingProject(QuPathProject):
             slide_url = slide_url.removeprefix("/")
         return slide_url
 
-    def __get_downsample_factor(self, img_id: int, downsample_level: int) -> float:
+    def __get_downsample_factor(
+        self,
+        downsample_level: int,
+        *,
+        img_id: Optional[int] = None,
+        power_of: Optional[int] = None,
+    ) -> float:
         """get downsample factor for a given image and downsample level
 
         Parameters
         ----------
-        img_id:
-            id of the image
-        downsample_level:
+        downsample_level : int
             level for downsampling
+        img_id : Optional[int], optional
+            id of the image, by default None
+        power_of : Optional[int], optional
+            compute custom downsample factor with this value to the power of the downsample_level, by default None
 
         Returns
         -------
-        :
+        float
             downsample factor
+
+        Raises
+        ------
+        ValueError
+            Either img_id or power_of is required to get downsample factor
+        ValueError
+            Requested downsample level is not available for the image
         """
+
+        if power_of:
+            return power_of**downsample_level
+        if img_id is None:
+            raise ValueError("img_id or power_of is required to get downsample factor")
         try:
             return self.images[img_id].downsample_levels[downsample_level]["downsample"]
         except IndexError as exc:
