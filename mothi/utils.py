@@ -26,8 +26,8 @@ def label_img_to_polys(
     ----------
         label_img:
             mask [height, width] with an annotation class for each pixel \n
-            or [num_class, height, width] for multilabels \n
-            background class is ignored for multilabels
+            or [num_class, height, width] for multichannel \n
+            background class is ignored for multichannel
         downsample_factor:
             factor for downsampling
         min_polygon_area:
@@ -38,7 +38,7 @@ def label_img_to_polys(
     Returns
     -------
         :
-            list of detected polygons with their annotationclass number [(polygon, annot_cls), ...]
+            list of detected polygons with their annotation class number [(polygon, annotation_cls), ...]
     """
     poly_labels: List[Tuple[Union[Polygon, BaseGeometry], int]] = []
 
@@ -84,8 +84,8 @@ def label_img_to_polys(
 
             # final Polygon per iteration
             poly: Union[Polygon, BaseGeometry]
-            # if the contour has childs, thoose contours are the holes
-            # -1 -> no childs
+            # if the contour has children, those contours are the holes
+            # -1 -> no children
             if child_id == -1:
                 # create polygon without holes
                 poly = Polygon(contours[current_id])
@@ -108,8 +108,8 @@ def label_img_to_polys(
                             hole_poly.exterior.coords,  # type: ignore
                         )
                     )
-                ## search for further childs
-                # further childs are listed by next in hierarchy of a known child
+                ## search for further children
+                # further children are listed by next in hierarchy of a known child
                 next_child_id: int = hierarchy[0][child_id][0]
                 while next_child_id != -1:
                     hole_poly = Polygon(
@@ -144,7 +144,7 @@ def label_img_to_polys(
                 origin=(0, 0),  # type: ignore
             )
             # coords Tuple[int, int] are also valid
-            # docu: https://shapely.readthedocs.io/en/stable/manual.html#shapely.affinity.scale
+            # documentation: https://shapely.readthedocs.io/en/stable/manual.html#shapely.affinity.scale
             if not poly.is_valid:
                 poly = make_valid(poly)
             if poly.area > min_polygon_area:
@@ -211,7 +211,7 @@ def _int_coord(
     coord: NDArray[np.float_], centroid_coords: NDArray[np.float_], export: bool
 ) -> NDArray[np.int_]:
     """round coordinate \n
-    increase or decrease value in comparision to the centroid
+    increase or decrease value in comparison to the centroid
     (needed to eliminate difference between QuPath and shapely)
 
     Parameters
