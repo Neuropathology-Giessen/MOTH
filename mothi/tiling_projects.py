@@ -2,11 +2,12 @@
 
 import pathlib
 import platform
+from collections.abc import Iterable
 from textwrap import dedent
-from typing import Dict, Iterable, List, Literal, Optional, Tuple, Union, cast, overload
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast, overload
 
-import cv2
 import numpy as np
+import rasterio.features
 from numpy.typing import NDArray
 from paquo.classes import QuPathPathClass
 from paquo.hierarchy import PathObjectProxy, QuPathPathObjectHierarchy
@@ -15,13 +16,11 @@ from paquo.pathobjects import QuPathPathAnnotationObject
 from paquo.projects import QuPathProject
 from PIL.Image import Image
 from shapely import affinity
-from shapely.geometry import GeometryCollection, MultiPolygon, Polygon
+from shapely.geometry import GeometryCollection, MultiPolygon, Polygon, shape
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 from shapely.ops import unary_union
 from shapely.strtree import STRtree
 from tiffslide import TiffSlide
-
-from mothi.utils import _round_polygon, label_img_to_polys
 
 ProjectIOMode = Literal["r", "r+", "w", "w+", "a", "a+", "x", "x+"]
 
@@ -316,7 +315,6 @@ class QuPathTilingProject(QuPathProject):
             )
 
         else:
-            # generate NDArray with zeroes where annotation will be drawn
             annotation_mask: NDArray[np.int32] = np.zeros(
                 (height, width), dtype=np.int32
             )
@@ -351,19 +349,14 @@ class QuPathTilingProject(QuPathProject):
                 # coords Tuple[int, int] are also valid
                 # documentation: https://shapely.readthedocs.io/en/stable/manual.html#shapely.affinity.scale
             )
-            # round coordinate points
-            exteriors: NDArray[np.int32]
-            interiors: List[NDArray[np.int32]]
-            exteriors, interiors = _round_polygon(scale_inter)
-
-            # draw rounded coordinate points
             if multichannel:
-                cv2.fillPoly(annotation_mask[class_num], [exteriors], [1])
-                cv2.fillPoly(annotation_mask[class_num], interiors, [0])
-
+                rasterio.features.rasterize(
+                    [(scale_inter, 1)], out=annotation_mask[class_num]
+                )
             else:
-                cv2.fillPoly(annotation_mask, [exteriors], [class_num])
-                cv2.fillPoly(annotation_mask, interiors, [0])
+                rasterio.features.rasterize(
+                    [(scale_inter, class_num)], out=annotation_mask
+                )
 
         return annotation_mask
 
@@ -373,7 +366,6 @@ class QuPathTilingProject(QuPathProject):
         annotation_mask: Union[NDArray[np.uint], NDArray[np.int_]],
         location: Tuple[int, int] = (0, 0),
         downsample_level: int = 0,
-        min_polygon_area: int = 0,
         multichannel: bool = False,
         downsample_level_power_of: Optional[int] = None,
     ) -> None:
@@ -392,28 +384,51 @@ class QuPathTilingProject(QuPathProject):
             pixel location without downsampling, by default (0, 0)
         downsample_level : int, optional
             level for downsampling, by default 0
-        min_polygon_area : int, optional
-            minimal area for polygons to be saved, by default 0
         multichannel : bool, optional
             True: binary image input [num_channels, height, width] \n
             False: labeled image input [height, width], by default False
         downsample_level_power_of : Optional[int], optional
             compute custom downsample factor with this value to the power of the downsample_level, by default None
         """
+        annotation_mask = annotation_mask.astype(rasterio.int32)
 
         downsample_factor: float = self.__get_downsample_factor(
             downsample_level, img_id=img_id, power_of=downsample_level_power_of
         )
         slide: QuPathProjectImageEntry = self.images[img_id]
-        poly_annotation_list: List[Tuple[Union[Polygon, BaseGeometry], int]]
-        # get polygons in mask
-        poly_annotation_list = label_img_to_polys(
-            annotation_mask, downsample_factor, min_polygon_area, multichannel
-        )
-        annotation_poly: Union[Polygon, BaseGeometry]
+
+        poly_annotation_iter: Iterable[Tuple[Dict[str, Any], Any]]
+        if not multichannel:
+            poly_annotation_iter = (
+                (polygon_data, class_number - 1)
+                for polygon_data, class_number in rasterio.features.shapes(
+                    annotation_mask, annotation_mask != 0
+                )
+            )
+        else:
+            poly_annotation_iter = []
+            for class_num in range(annotation_mask.shape[0]):
+                poly_annotation_iter.extend(
+                    (
+                        (polygon_data, class_num)
+                        for polygon_data, _ in rasterio.features.shapes(
+                            annotation_mask[class_num], annotation_mask[class_num] != 0
+                        )
+                    )
+                )
+
+        annotation_poly_data: dict[str, Any]
         annotation_class: int
         ## add detected Polygons to the QuPath project
-        for annotation_poly, annotation_class in poly_annotation_list:
+        for annotation_poly_data, annotation_class in poly_annotation_iter:
+            annotation_poly = shape(annotation_poly_data)
+            # scale poly to level 0 (no downsampling) size
+            annotation_poly = affinity.scale(
+                annotation_poly,
+                xfact=1 * downsample_factor,
+                yfact=1 * downsample_factor,
+                origin=(0, 0),  # type: ignore
+            )
             slide.hierarchy.add_annotation(
                 affinity.translate(annotation_poly, location[0], location[1]),
                 self._class_dict[annotation_class],
@@ -561,7 +576,7 @@ class QuPathTilingProject(QuPathProject):
             Requested downsample level is not available for the image
         """
 
-        if power_of:
+        if power_of is not None:
             return power_of**downsample_level
         if img_id is None:
             raise ValueError("img_id or power_of is required to get downsample factor")
