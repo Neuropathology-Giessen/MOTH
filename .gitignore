@@ -5,11 +5,11 @@
 # QuPath installation
 QuPath
 
-# Untracked files
-paper/qp_project
-paper/comparison_groovy/comp_project
+# paper related resources
+paper/comparison_groovy/comp_project/
+paper/comparison_groovy/groovy_export/
+paper/moth/moth.jpg
 paper/times/files
-paper/times/moth.jpg
 paper/times/time_project
 
 # Data

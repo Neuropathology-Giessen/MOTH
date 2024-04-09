@@ -12,7 +12,7 @@ import tifffile
 from numpy import int32
 from numpy.typing import NDArray
 
-from mothi.tiling_projects import QuPathTilingProject
+from mothi.projects import MaskParameter, QuPathTilingProject
 
 IMAGE_DIR = Path("files")
 QP_PROJECT_PATH = Path("times_project")
@@ -36,8 +36,8 @@ def extract_tiles(
             tile: NDArray[int32] = project.get_tile(
                 img_id, (x_coord, y_coord), tile_size, ret_array=True
             )
-            mask: NDArray[int32] = project.get_tile_annot_mask(
-                img_id, (x_coord, y_coord), tile_size
+            mask: NDArray[int32] = project.get_tile_annotation_mask(
+                MaskParameter(img_id, (x_coord, y_coord)), tile_size
             )
             print(np.unique(mask))
             tifffile.imwrite(IMAGE_DIR / f"tile(x={x_coord};y={y_coord}).tiff", tile)
@@ -60,7 +60,7 @@ def import_masks(path: Path, img_id: int, project: QuPathTilingProject):
         if not len(location) == 2:
             raise TypeError("Length of Location does not fit")
         mask = tifffile.imread(filename)
-        project.save_mask_annotations(img_id, mask, location)
+        project.save_mask_annotations(mask, MaskParameter(img_id, location))
         project.save()
 
 
