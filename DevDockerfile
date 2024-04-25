@@ -22,6 +22,7 @@ RUN pip install matplotlib
 RUN pip install progress
 
 # set workdir to /home/user and copy local directory
+RUN useradd -u ${userid} -d /home/${user} -m ${user}
 WORKDIR /home/${user}
 COPY . .
 
@@ -34,5 +35,4 @@ ENV PAQUO_QUPATH_DIR=/home/${user}/QuPath-0.4.4
 
 # set local user... otherwise you can not acces the QuPath project outside of Docker
 # also saved files will not be locked with root user permissions
-RUN useradd -u ${userid} ${user}
 USER ${user}
