@@ -27,3 +27,6 @@ classifiers = [
 
 [project.urls]
 "Homepage" = "https://github.com/thkauer/GBM_QuPath_tiles"
+
+[tool.setuptools]
+packages=["mothi"]
