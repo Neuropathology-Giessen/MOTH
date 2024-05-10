@@ -15,9 +15,10 @@ from paquo.projects import QuPathProject
 from shapely import Polygon, affinity
 from tifffile import imwrite
 
-QP_PROJECT_PATH = Path("comp_project")
+BASE_PATH = Path(__file__).parent
+QP_PROJECT_PATH = Path(BASE_PATH, "comp_project")
 QP_MODE = "x"
-MOTH_DATA_PATH = Path("../moth/moth_data.json")
+MOTH_DATA_PATH = Path(BASE_PATH, "../moth/moth_data.json")
 
 # clear existing project
 if os.path.isdir(QP_PROJECT_PATH):
@@ -67,7 +68,7 @@ subprocess_command: list[str] = [
     str(QP_PROJECT_PATH / Path("project.qpproj")),
     "-i",
     "white.tiff",
-    "create_compproject_rois.groovy",
+    str(BASE_PATH / "create_compproject_rois.groovy"),
 ]
 try:
     subprocess.run(subprocess_command, check=True)
