@@ -4,7 +4,7 @@
 Quickstart
 ==========
 
-| All non tile specifig QuPath things are implemented and documented by `paquo`.
+| All non tile specific QuPath things are implemented and documented by `paquo`.
   Please refer to paquo's `documentation <https://paquo.readthedocs.io/en/latest/index.html>`_
   for these functionalities.
 | The focus of the package is on the use of tiles in QuPath, for example to enable a pytorch workflow.
@@ -15,17 +15,16 @@ Get tiles and their annotations
 -------------------------------
 
 | The first use case of mothi is to query specific tiles and the associated annotations.
-| Below is small example of how to use `mothi` to get theese tiles and their
-  associated annotations.
+| Below is a small example of using `mothi` to get the tiles and their annotations.
 
 Open a project to work on it
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-| The functions of `mothi` become usable via the :class:`mothi.tiling_projects.QuPathTilingProject`
+| The functions of `mothi` become usable via the :class:`mothi.projects.QuPathTilingProject`
   class. 
 
 .. code-block:: python3
 
-    >>> from mothi.tiling_projects import QuPathTilingProject
+    >>> from mothi.projects import QuPathTilingProject
     >>> qp_project = QuPathTilingProject('/path/to/project')
 
 | If a valid path was specified, the project is now opened in read only mode.
@@ -33,8 +32,8 @@ Open a project to work on it
 Get tile and its annotations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 | To retrieve tiles and their annotations just call
-  :meth:`mothi.tiling_projects.QuPathTilingProject.get_tile` 
-  and :meth:`mothi.tiling_projects.QuPathTilingProject.get_tile_annot_mask`
+  :meth:`mothi.projects.QuPathTilingProject.get_tile` 
+  and :meth:`mothi.projects.QuPathTilingProject.get_tile_annotation_mask`
   methods with the desired parameters and the tile and its annotations will be returned
 
 .. code-block:: python3
