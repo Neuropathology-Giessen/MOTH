@@ -294,10 +294,10 @@ class QuPathTilingProject(QuPathProject):
             background class is ignored for multichannel
         """
 
-        downsample_factor: float = self._get_downsample_factor(
+        downsample_factor: float = self.get_downsample_factor(
             mask_params.downsample_level,
             img_id=mask_params.img_id,
-            power_of=mask_params.downsample_level_power_of,
+            base=mask_params.downsample_level_power_of,
         )
 
         # level_0_size needed to get all Polygons in downsample area
@@ -380,10 +380,10 @@ class QuPathTilingProject(QuPathProject):
         """
         annotation_mask = annotation_mask.astype(rasterio.int32)
 
-        downsample_factor: float = self._get_downsample_factor(
+        downsample_factor: float = self.get_downsample_factor(
             mask_params.downsample_level,
             img_id=mask_params.img_id,
-            power_of=mask_params.downsample_level_power_of,
+            base=mask_params.downsample_level_power_of,
         )
         slide: QuPathProjectImageEntry = self.images[mask_params.img_id]
 
@@ -434,7 +434,7 @@ class QuPathTilingProject(QuPathProject):
         img_id : int
             Id of the image where annotations will be merged
         max_dist : Union[float, int]
-            Maximal distance up to which the annotations will be merged
+            Maximum distance up to which the annotations are merged
         """
         hierarchy: QuPathPathObjectHierarchy = self.images[img_id].hierarchy
         annotations: PathObjectProxy[QuPathPathAnnotationObject] = hierarchy.annotations
@@ -537,14 +537,41 @@ class QuPathTilingProject(QuPathProject):
             slide_url = slide_url.removeprefix("/")
         return slide_url
 
-    def _get_downsample_factor(
+    @overload
+    def get_downsample_factor(
+        self,
+        downsample_level: int,
+        *,
+        img_id: int,
+    ) -> float: ...
+
+    @overload
+    def get_downsample_factor(
+        self,
+        downsample_level: int,
+        *,
+        base: int,
+    ) -> float: ...
+
+    @overload
+    def get_downsample_factor(
+        self,
+        downsample_level: int,
+        *,
+        img_id: Optional[int],
+        base: Optional[int],
+    ) -> float: ...
+
+    def get_downsample_factor(
         self,
         downsample_level: int,
         *,
         img_id: Optional[int] = None,
-        power_of: Optional[int] = None,
+        base: Optional[int] = None,
     ) -> float:
-        """Get downsample factor for a given image and downsample level
+        """Get downsample factor for a downsample_level.
+        Either for a given image
+        or computed for a given base value to the power of the downsample_level
 
         Parameters
         ----------
@@ -552,8 +579,8 @@ class QuPathTilingProject(QuPathProject):
             Level for downsampling
         img_id : Optional[int], optional
             Id of the image, by default None
-        power_of : Optional[int], optional
-            Compute custom downsample factor with this value to the power of the downsample_level,
+        base : Optional[int], optional
+            Compute custom downsample factor with the given base to the power of the downsample_level,
             by default None
 
         Returns
@@ -569,8 +596,11 @@ class QuPathTilingProject(QuPathProject):
             Requested downsample level is not available for the image
         """
 
-        if power_of is not None:
-            return power_of**downsample_level
+        if base is not None and img_id is not None:
+            print("Downsampling: Both img_id and power_of are given. Using power_of")
+            return base**downsample_level
+        if base is not None:
+            return base**downsample_level
         if img_id is None:
             raise ValueError("img_id or power_of is required to get downsample factor")
         try:
