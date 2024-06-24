@@ -15,7 +15,7 @@ from paquo.projects import QuPathProject
 from shapely import Polygon
 from tifffile import imwrite
 
-QP_PROJECT_PATH = Path("time_project")
+QP_PROJECT_PATH = Path("custom_time_project")
 QP_MODE = "x"
 MOTH_DATA_PATH = Path("../moth/moth_data.json")
 
