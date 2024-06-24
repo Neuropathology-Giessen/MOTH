@@ -113,7 +113,12 @@ class QuPathTilingProject(QuPathProject):
         slide: QuPathProjectImageEntry = self.images[img_id]
         annotations: PathObjectProxy = slide.hierarchy.annotations
         img_ann_list: list[tuple[Polygon, str]] = [
-            (annotation.roi, annotation.path_class.id) for annotation in annotations
+            (
+                (annotation.roi, annotation.path_class.id)
+                if annotation.path_class is not None
+                else (annotation.roi, "Unknown")
+            )
+            for annotation in annotations
         ]
 
         # list[tuple[Polygon, str]] -> NDArray[list(roi, list(annotation_classes)]
@@ -333,7 +338,9 @@ class QuPathTilingProject(QuPathProject):
         inter_class: str
         intersection: Polygon
         for intersection, inter_class in tile_intersections:
-            class_num: int = self._inverse_class_dict[inter_class]
+            class_num: Optional[int] = self._inverse_class_dict.get(inter_class)
+            if class_num is None:
+                continue
             # first class should be on the lowest level for multichannel
             if not mask_params.multichannel:
                 class_num += 1
