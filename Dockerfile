@@ -8,8 +8,8 @@ RUN apt-get -y update && apt-get -y install libgl1 \
     && apt-get -y install libxtst6
 
 # create user
-RUN groupadd -r ${USERNAME} && useradd -r -g ${USERNAME} ${USERNAME}
-WORKDIR /home/${USERNAME}
+RUN groupadd -r $USERNAME && useradd -r -g $USERNAME $USERNAME
+WORKDIR /home/$USERNAME
 
 # copy local directory
 COPY . .
@@ -18,8 +18,8 @@ COPY . .
 RUN pip install .
 
 # install QuPath 0.4.4 and set the enviroment variable
-RUN python -m paquo get_qupath --install-path ./ ${QUPATH_VERSION}
-ENV PAQUO_QUPATH_DIR=/home/${USERNAME}/QuPath-${QUPATH_VERSION}
+RUN python -m paquo get_qupath --install-path ./ $QUPATH_VERSION
+ENV PAQUO_QUPATH_DIR=/home/$USERNAME/QuPath-$QUPATH_VERSION
 
 
 FROM build as devbuild
@@ -35,14 +35,14 @@ RUN pip install progress
 
 
 FROM devbuild as dev
-USER ${user}
+USER moth
 
 
 FROM devbuild as workflow
 RUN pip install torch
 RUN pip install torchvision
-USER ${user}
+USER moth
 
 
 FROM build as prod
-USER ${user}
+USER moth
