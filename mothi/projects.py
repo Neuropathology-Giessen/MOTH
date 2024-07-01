@@ -1,4 +1,4 @@
-""" This module can be used for tiling in a QuPathProjects without leaving Python """
+""" This module can be used for tiling in a QuPathProjects without leaving Python. """
 
 import pathlib
 import platform

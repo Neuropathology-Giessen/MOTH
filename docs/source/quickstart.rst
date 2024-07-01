@@ -24,7 +24,7 @@ Open a project to work on it
 
 .. code-block:: python3
 
-    >>> from mothi.projects import QuPathTilingProject, MaskParameter
+    >>> from mothi import QuPathTilingProject, MaskParameter
     >>> qp_project = QuPathTilingProject('/path/to/project')
 
 | If a valid path was specified, the project is now opened in read only mode.
@@ -58,13 +58,13 @@ Open a project to work on it
 .. code-block:: python3
 
     >>> # example: open in read/write mode
-    >>> from mothi.projects import QuPathTilingProject
+    >>> from mothi import QuPathTilingProject
     >>> qp_project = QuPathTilingProject('/path/to/project', mode='r+')
 
 .. code-block:: python3
 
     >>> # create new project
-    >>> from mothi.projects import QuPathTilingProject
+    >>> from mothi import QuPathTilingProject
     >>> qp_project = QuPathTilingProject('/path/to/project', mode='x')
 
 Save tilemask

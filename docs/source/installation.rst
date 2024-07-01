@@ -33,19 +33,21 @@ Install via Docker
 ------------------
 
 | To get a ready to use (python, mothi and QuPath installed) Docker container,
+  clone the repository and
   use the `Dockerfile from github <https://github.com/thkauer/GBM_QuPath_tiles/blob/master/Dockerfile>`_ 
-| To use the Dockerfile copy it to your local system and follow the below steps for creating an image
+  to create a new Docker image.
+| To use the Dockerfile follow the below steps for creating an image:
 
 .. code-block:: console
 
-  user@computer:~$ docker build [-t tagname] /path/to/Dockerfile
+  user@computer:~/path/to/the/repository$ docker build [-t tagname] .
 
 
-| now run the container using:
+| now you can run the container using:
 
 .. code-block:: console
 
-  user@computer:~$ docker run -it tagname /bin/bash
+  user@computer:~/path/to/the/repository$ docker run -it tagname bash
 
 | To mount files or data, explore the 
   `docker run documentation <https://docs.docker.com/engine/reference/commandline/run/>`_ 
