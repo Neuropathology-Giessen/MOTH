@@ -8,23 +8,23 @@ Quickstart
   Please refer to paquo's `documentation <https://paquo.readthedocs.io/en/latest/index.html>`_
   for these functionalities.
 | The focus of the package is on the use of tiles in QuPath, for example to enable a pytorch workflow.
-  To get started with QuPath tiling in `python`, here are a few examples of how to use `mothi`:
+  To get started with QuPath tiling in `python`, here are a few examples of how to use `moth`:
 
 -------------------------------
 Get tiles and their annotations
 -------------------------------
 
-| The first use case of mothi is to query specific tiles and the associated annotations.
-| Below is a small example of using `mothi` to get the tiles and their annotations.
+| The first use case of moth is to query specific tiles and the associated annotations.
+| Below is a small example of using `moth` to get the tiles and their annotations.
 
 Open a project to work on it
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-| The functions of `mothi` become usable via the :class:`mothi.projects.QuPathTilingProject`
+| The functions of `moth` become usable via the :class:`moth.projects.QuPathTilingProject`
   class. 
 
 .. code-block:: python3
 
-    >>> from mothi import QuPathTilingProject, MaskParameter
+    >>> from moth import QuPathTilingProject, MaskParameter
     >>> qp_project = QuPathTilingProject('/path/to/project')
 
 | If a valid path was specified, the project is now opened in read only mode.
@@ -32,8 +32,8 @@ Open a project to work on it
 Get tile and its annotations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 | To retrieve tiles and their annotations just call
-  :meth:`mothi.projects.QuPathTilingProject.get_tile` 
-  and :meth:`mothi.projects.QuPathTilingProject.get_tile_annotation_mask`
+  :meth:`moth.projects.QuPathTilingProject.get_tile` 
+  and :meth:`moth.projects.QuPathTilingProject.get_tile_annotation_mask`
   methods with the desired parameters and the tile and its annotations will be returned
 
 .. code-block:: python3
@@ -48,7 +48,7 @@ Get tile and its annotations
 ---------------------------
 Save a tilemask on an image
 ---------------------------
-| The second use case of mothi is storing generated annotations (tilemask) on images.
+| The second use case of moth is storing generated annotations (tilemask) on images.
 
 Open a project to work on it
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -58,19 +58,19 @@ Open a project to work on it
 .. code-block:: python3
 
     >>> # example: open in read/write mode
-    >>> from mothi import QuPathTilingProject
+    >>> from moth import QuPathTilingProject
     >>> qp_project = QuPathTilingProject('/path/to/project', mode='r+')
 
 .. code-block:: python3
 
     >>> # create new project
-    >>> from mothi import QuPathTilingProject
+    >>> from moth import QuPathTilingProject
     >>> qp_project = QuPathTilingProject('/path/to/project', mode='x')
 
 Save tilemask
 ~~~~~~~~~~~~~
 | The `tilemask` you want to save can now be saved by calling the method
-  :meth:`mothi.projects.QuPathTilingProject.save_mask_annotations`
+  :meth:`moth.projects.QuPathTilingProject.save_mask_annotations`
 
 .. code-block:: python3
 
@@ -84,7 +84,7 @@ Merge annotation
 ~~~~~~~~~~~~~~~~
 | After importing multiple tile annotations, you can merge nearby annotations of the same classes.
   This can be done with the help of the method
-  :meth:`mothi.projects.QuPathTilingProject.merge_near_annotations`.
+  :meth:`moth.projects.QuPathTilingProject.merge_near_annotations`.
 
 .. code-block:: python3
 

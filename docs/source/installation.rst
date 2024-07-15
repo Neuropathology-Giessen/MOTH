@@ -2,20 +2,20 @@
 Installation
 ============
 
-Install mothi
+Install moth
 -------------
 
-| To install `mothi` via `pypi`, run (only `test-pypi` yet):
+| To install `moth` via `pypi`, run (only `test-pypi` yet):
 
 .. code-block:: console
 
-    user@computer:~$ pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple mothi
+    user@computer:~$ pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple moth
 
 
 Install QuPath
 --------------
 
-| To interact with `QuPath`, `paquo (package that mothi extends)` requires a working `QuPath` installation.
+| To interact with `QuPath`, `paquo (package that moth extends)` requires a working `QuPath` installation.
   To install `QuPath` follow the `QuPath` installation guide:
   `Install QuPath <https://qupath.readthedocs.io/en/stable/docs/intro/installation.html>`_.
 | If `QuPath` is not installed in the default directory, you need to configure `QuPath` for `paquo` via:
@@ -32,7 +32,7 @@ Install QuPath
 Install via Docker
 ------------------
 
-| To get a ready to use (python, mothi and QuPath installed) Docker container,
+| To get a ready to use (python, moth and QuPath installed) Docker container,
   clone the repository and
   use the `Dockerfile from github <https://github.com/thkauer/GBM_QuPath_tiles/blob/master/Dockerfile>`_ 
   to create a new Docker image.

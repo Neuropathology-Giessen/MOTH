@@ -237,7 +237,7 @@ class QuPathTilingProject(QuPathProject):
         ann_tree: STRtree
         index_and_class: dict[int, tuple[int, str]]
         ann_tree, index_and_class = self.img_annotation_dict[img_id]
-        near_polys: list[BaseGeometry] = ann_tree.geometries.take(
+        near_polys: Iterable[BaseGeometry] = ann_tree.geometries.take(
             ann_tree.query(polygon_tile)
         )
         near_poly_classes: list[str] = [
@@ -475,7 +475,7 @@ class QuPathTilingProject(QuPathProject):
             nested_annotations: list[BaseGeometry] = [annotation_poly_buffered]
             while len(nested_annotations) > 0:
                 annotation_poly_buffered = nested_annotations.pop(0)
-                near_polys: list[BaseGeometry] = ann_tree.geometries.take(
+                near_polys: Iterable[BaseGeometry] = ann_tree.geometries.take(
                     ann_tree.query(annotation_poly_buffered)
                 )
                 near_poly_index_and_classes: list[tuple[int, str]] = [

@@ -14,7 +14,7 @@ WORKDIR /home/$USERNAME
 # copy local directory
 COPY . .
 
-# install local mothi version
+# install local moth version
 RUN pip install .
 
 # install QuPath 0.4.4 and set the enviroment variable
@@ -24,7 +24,6 @@ ENV PAQUO_QUPATH_DIR=/home/$USERNAME/QuPath-$QUPATH_VERSION
 
 FROM build as devbuild
 # install sphinx dependencies to build the documentation local
-RUN apt-get -y install python3-sphinx
 RUN pip install .[docs]
 
 # dev installation for paper and workflow related work 

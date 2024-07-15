@@ -8,7 +8,7 @@ import numpy as np
 from progress.bar import Bar
 from saved_tile_dataset import SavedTilesDataset
 
-from mothi.projects import MaskParameter, QuPathTilingProject
+from moth.projects import MaskParameter, QuPathTilingProject
 
 # config
 QUPATH_DIR = os.path.join("..", "test", "test_projects", "qp_project")
