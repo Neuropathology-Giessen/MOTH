@@ -4,14 +4,14 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "mothi"
-version = "0.0.1"
+name = "gin-moth"
+version = "0.1.0"
 authors = [
   { name="Thomas Kauer" },
   { name="Jannik Sehring, M.Sc." },
   { name="Dr. Daniel Amsel" }
 ]
-description = "mothi example"
+description = "Memory-efficient On-the-fly Tiling of Histological images"
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
@@ -33,7 +33,7 @@ docs = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/thkauer/GBM_QuPath_tiles"
+"Homepage" = "https://github.com/Neuropathology-Giessen/moth"
 
 [tool.setuptools]
-packages=["mothi"]
+packages=["moth"]

@@ -12,7 +12,7 @@ The documentation can be found on `readthedocs`.
 # Installation
 `moth` can be installed via `pip`:
 ```bash
- user@computer:~$ pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple moth
+ user@computer:~$ pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple gin-moth
 ```
 
 ## Install QuPath
@@ -45,22 +45,3 @@ now run the container using:
 ```
 
 To mount files or data, explore the [docker run documentation](https://docs.docker.com/engine/reference/commandline/run/) 
-
-
-## Visual Studio Code Dev Container
-
-If you want to use a `VSCode Dev Container`, copy the `Dockerfile` to the directory you want to work with.
-Open the folder in VSCode and follow the VSCode Dev Container
-[Guide](https://code.visualstudio.com/docs/devcontainers/containers#_quick-start-open-an-existing-folder-in-a-container) 
-
-
-# For development
-after cloning the repository create a `VSCode Dev Container` with the `DevDockerfile`.
-In the Container, open the repository and follow the steps below:  
-
-```bash
-  user@computer:~/path/to/repo$ cd ./docs
-  user@computer:~/path/to/repo/docs$ make html
-``` 
-
-after building the documentation files, they can be found under `repo/docs/build/html`
