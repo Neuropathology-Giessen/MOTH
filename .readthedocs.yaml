@@ -4,6 +4,10 @@ build:
   os: "ubuntu-22.04"
   tools:
     python: "3.9"
+  jobs:
+    post_install:
+      - python -m paquo get_qupath --install-path /opt 0.4.4
+      - export PAQUO_QUPATH_DIR=/opt/QuPath-0.4.4
 
 python:
   install:

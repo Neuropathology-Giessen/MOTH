@@ -7,7 +7,7 @@ The added functionalities are functions to support tiling in QuPath directly fro
 Now tiling can be done on-the-fly with moth
 and a Python developer no longer needs a Groovy script to generate tiles.
 
-The documentation can be found on `readthedocs`.
+The documentation can be found under  [gin-moth.readthedocs.io](https://gin-moth.readthedocs.io).
 
 # Installation
 `moth` can be installed via `pip`:
