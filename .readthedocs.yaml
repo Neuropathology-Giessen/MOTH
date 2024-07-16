@@ -7,7 +7,7 @@ build:
   jobs:
     post_install:
       - python -m paquo get_qupath --install-path . 0.4.4
-      - export PAQUO_QUPATH_DIR=${READTHEDOCS_REPOSITORY_PATH}/QuPath-0.4.4
+      - export PAQUO_QUPATH_DIR=`pwd`/QuPath-0.4.4
 
 python:
   install:
