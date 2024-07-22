@@ -33,7 +33,7 @@ docs = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/Neuropathology-Giessen/moth"
+"Homepage" = "https://github.com/Neuropathology-Giessen/MOTH"
 
 [tool.setuptools]
 packages=["moth"]

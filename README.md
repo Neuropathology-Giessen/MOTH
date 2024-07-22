@@ -12,7 +12,7 @@ The documentation can be found under  [gin-moth.readthedocs.io](https://gin-moth
 # Installation
 `moth` can be installed via `pip`:
 ```bash
- user@computer:~$ pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple gin-moth
+ user@computer:~$ pip install gin-moth
 ```
 
 ## Install QuPath

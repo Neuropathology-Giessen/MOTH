@@ -1,7 +1,7 @@
 .. _api:
 
 =========
-Moth API
+MOTH API
 =========
 
 | At the moment `moth` contains the :class:`QuPathTilingProject` class to extract, import and merge tiles from a QuPath project.
