@@ -1,4 +1,4 @@
-""" This module can be used for tiling in a QuPathProjects without leaving Python """
+""" This module can be used for tiling in a QuPathProjects without leaving Python. """
 
 import pathlib
 import platform
@@ -113,7 +113,12 @@ class QuPathTilingProject(QuPathProject):
         slide: QuPathProjectImageEntry = self.images[img_id]
         annotations: PathObjectProxy = slide.hierarchy.annotations
         img_ann_list: list[tuple[Polygon, str]] = [
-            (annotation.roi, annotation.path_class.id) for annotation in annotations
+            (
+                (annotation.roi, annotation.path_class.id)
+                if annotation.path_class is not None
+                else (annotation.roi, "Unknown")
+            )
+            for annotation in annotations
         ]
 
         # list[tuple[Polygon, str]] -> NDArray[list(roi, list(annotation_classes)]
@@ -232,7 +237,7 @@ class QuPathTilingProject(QuPathProject):
         ann_tree: STRtree
         index_and_class: dict[int, tuple[int, str]]
         ann_tree, index_and_class = self.img_annotation_dict[img_id]
-        near_polys: list[BaseGeometry] = ann_tree.geometries.take(
+        near_polys: Iterable[BaseGeometry] = ann_tree.geometries.take(
             ann_tree.query(polygon_tile)
         )
         near_poly_classes: list[str] = [
@@ -333,7 +338,9 @@ class QuPathTilingProject(QuPathProject):
         inter_class: str
         intersection: Polygon
         for intersection, inter_class in tile_intersections:
-            class_num: int = self._inverse_class_dict[inter_class]
+            class_num: Optional[int] = self._inverse_class_dict.get(inter_class)
+            if class_num is None:
+                continue
             # first class should be on the lowest level for multichannel
             if not mask_params.multichannel:
                 class_num += 1
@@ -468,7 +475,7 @@ class QuPathTilingProject(QuPathProject):
             nested_annotations: list[BaseGeometry] = [annotation_poly_buffered]
             while len(nested_annotations) > 0:
                 annotation_poly_buffered = nested_annotations.pop(0)
-                near_polys: list[BaseGeometry] = ann_tree.geometries.take(
+                near_polys: Iterable[BaseGeometry] = ann_tree.geometries.take(
                     ann_tree.query(annotation_poly_buffered)
                 )
                 near_poly_index_and_classes: list[tuple[int, str]] = [

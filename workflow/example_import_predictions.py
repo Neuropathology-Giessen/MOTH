@@ -8,7 +8,7 @@ from typing import Optional
 import cv2
 import numpy as np
 
-from mothi.projects import MaskParameter, QuPathTilingProject
+from moth.projects import MaskParameter, QuPathTilingProject
 
 TEMP_QUPATH_DIR = os.path.join("data", "temp_project")
 QUPATH_DIR = os.path.join("..", "test", "test_projects", "qp_project")

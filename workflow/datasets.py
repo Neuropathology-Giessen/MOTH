@@ -12,7 +12,7 @@ from torch import Tensor
 from torch.utils.data import Dataset
 from torchvision.transforms import ToTensor
 
-from mothi.projects import MaskParameter, QuPathTilingProject
+from moth.projects import MaskParameter, QuPathTilingProject
 
 
 class QPDataset(Dataset, ABC):

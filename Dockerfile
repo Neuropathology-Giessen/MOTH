@@ -1,24 +1,47 @@
-FROM python:3.9.9
-RUN apt-get -y update
-
+FROM python:3.9.9 as build
 # Args
-ARG user=[username]
-ARG userid=[userid]
+ARG USERNAME=moth
+ARG QUPATH_VERSION=0.4.4
 
-# opencv-python essential (not installed in Docker)
-RUN apt-get -y install libgl1-mesa-glx
+# paquo and opencv essential
+RUN apt-get -y update && apt-get -y install libgl1 \
+    && apt-get -y install libxtst6
 
-# install mothi
-RUN pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple mothi
+# create user
+RUN groupadd -r $USERNAME && useradd -r -g $USERNAME $USERNAME
+WORKDIR /home/$USERNAME
 
-# set workdir to /home/user and copy local directory
-WORKDIR /home/${user}
+# copy local directory
 COPY . .
 
-# install QuPath 0.3.2 and set the enviroment variable
-RUN python -m paquo get_qupath --install-path ./ 0.4.4
-ENV PAQUO_QUPATH_DIR=/home/${user}/QuPath-0.4.4
+# install local moth version
+RUN pip install .
 
-# set local user... otherwise you can not acces the QuPath project outside of Docker
-RUN useradd -u ${userid} ${user}
-USER ${user}
+# install QuPath 0.4.4 and set the enviroment variable
+RUN python -m paquo get_qupath --install-path ./ $QUPATH_VERSION
+ENV PAQUO_QUPATH_DIR=/home/$USERNAME/QuPath-$QUPATH_VERSION
+
+
+FROM build as devbuild
+# install sphinx dependencies to build the documentation local
+RUN pip install .[docs]
+
+# dev installation for paper and workflow related work 
+RUN pip install opencv-python
+RUN pip install matplotlib
+RUN pip install progress
+
+
+
+FROM devbuild as dev
+USER moth
+
+
+FROM devbuild as workflow
+RUN pip install torch
+RUN pip install torchvision
+USER moth
+
+
+FROM build as prod
+USER moth

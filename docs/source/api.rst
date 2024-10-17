@@ -1,17 +1,18 @@
 .. _api:
 
 =========
-Mothi API
+MOTH API
 =========
 
-At the moment `mothi` contains :class:`QuPathTilingProject` and utils
+| At the moment `moth` contains the :class:`QuPathTilingProject` class to extract, import and merge tiles from a QuPath project.
+| Additionally, `moth` contains the :class:`MaskParameter` class to specify the parameters for mask interactions.
 
 MaskParameter
 -------------
-.. autoclass:: mothi.projects.MaskParameter
+.. autoclass:: moth.projects.MaskParameter
 
 
 QuPathTilingProject
 -------------------
-.. autoclass:: mothi.projects.QuPathTilingProject
+.. autoclass:: moth.projects.QuPathTilingProject
     :members:

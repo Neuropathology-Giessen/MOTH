@@ -2,21 +2,70 @@
   "version": "0.3.2",
   "createTimestamp": 1655711137638,
   "modifyTimestamp": 1655711137638,
-  "uri": "file:/home/tkauer/programs/github/GBM_QuPath_tiles/test/test_projects/qp_project/project.qpproj",
+  "uri": "file:///workspaces/moth/test/test_projects/qp_project/project.qpproj",
   "lastID": 1,
   "images": [
     {
       "serverBuilder": {
         "builderType": "uri",
         "providerClassName": "qupath.lib.images.servers.bioformats.BioFormatsServerBuilder",
-        "uri": "file:/home/tkauer/programs/github/GBM_QuPath_tiles/test/test_projects/slides/white-4096.tif",
+        "uri": "file:///workspaces/moth/test/test_projects/slides/white-4096.tif",
         "args": [
           "--series",
           "0"
-        ]
+        ],
+        "metadata": {
+          "name": "white-4096.tif",
+          "width": 4096,
+          "height": 4096,
+          "sizeZ": 1,
+          "sizeT": 1,
+          "channelType": "DEFAULT",
+          "isRGB": true,
+          "pixelType": "UINT8",
+          "levels": [
+            {
+              "downsample": 1.0,
+              "width": 4096,
+              "height": 4096
+            }
+          ],
+          "channels": [
+            {
+              "name": "Red",
+              "color": -65536
+            },
+            {
+              "name": "Green",
+              "color": -16711936
+            },
+            {
+              "name": "Blue",
+              "color": -16776961
+            }
+          ],
+          "pixelCalibration": {
+            "pixelWidth": {
+              "value": 1.0,
+              "unit": "µm"
+            },
+            "pixelHeight": {
+              "value": 1.0,
+              "unit": "µm"
+            },
+            "zSpacing": {
+              "value": 1.0,
+              "unit": "z-slice"
+            },
+            "timeUnit": "SECONDS",
+            "timepoints": []
+          },
+          "preferredTileWidth": 4096,
+          "preferredTileHeight": 85
+        }
       },
       "entryID": 1,
-      "randomizedName": "d90d9b12-d76c-4cc3-9b48-8213e7b4ce2b",
+      "randomizedName": "50bf0ecb-629f-4ea4-8df1-283c79d94992",
       "imageName": "white-4096.tif",
       "metadata": {}
     }

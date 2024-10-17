@@ -7,24 +7,24 @@ Quickstart
 | All non tile specific QuPath things are implemented and documented by `paquo`.
   Please refer to paquo's `documentation <https://paquo.readthedocs.io/en/latest/index.html>`_
   for these functionalities.
-| The focus of the package is on the use of tiles in QuPath, for example to enable a pytorch workflow.
-  To get started with QuPath tiling in `python`, here are a few examples of how to use `mothi`:
+| The focus of the package is on the use of tiles in QuPath, for example, to enable a pytorch workflow.
+  To get started with QuPath tiling in `python`, here are a few examples of how to use `moth`:
 
 -------------------------------
 Get tiles and their annotations
 -------------------------------
 
-| The first use case of mothi is to query specific tiles and the associated annotations.
-| Below is a small example of using `mothi` to get the tiles and their annotations.
+| The first use case of moth is to query specific tiles and the associated annotations.
+| Below is a small example of using `moth` to get the tiles and their annotations.
 
 Open a project to work on it
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-| The functions of `mothi` become usable via the :class:`mothi.projects.QuPathTilingProject`
+| The functions of `moth` become usable via the :class:`moth.projects.QuPathTilingProject`
   class. 
 
 .. code-block:: python3
 
-    >>> from mothi.projects import QuPathTilingProject, MaskParameter
+    >>> from moth import QuPathTilingProject, MaskParameter
     >>> qp_project = QuPathTilingProject('/path/to/project')
 
 | If a valid path was specified, the project is now opened in read only mode.
@@ -32,8 +32,8 @@ Open a project to work on it
 Get tile and its annotations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 | To retrieve tiles and their annotations just call
-  :meth:`mothi.projects.QuPathTilingProject.get_tile` 
-  and :meth:`mothi.projects.QuPathTilingProject.get_tile_annotation_mask`
+  :meth:`moth.projects.QuPathTilingProject.get_tile` 
+  and :meth:`moth.projects.QuPathTilingProject.get_tile_annotation_mask`
   methods with the desired parameters and the tile and its annotations will be returned
 
 .. code-block:: python3
@@ -41,14 +41,14 @@ Get tile and its annotations
     >>> tile = qp_project.get_tile(img_id=0, location=(50,50), size=(256,256))
     >>> tilemask = qp_project.get_tile_annotation_mask(MaskParameter(img_id=0, location=(50,50)), size=(256,256))
 
-| The example shown above returns tiles and annotations for the first image at position
+| The example above returns tiles and annotations for the first image at position
   (50|50) in size 256 x 256 pixels.
-| Learn more about the parameters of the functions by taking a look at the :ref:`api`.
+| Learn more about the parameters of the functions by looking at the :ref:`api`.
 
 ---------------------------
 Save a tilemask on an image
 ---------------------------
-| The second use case of mothi is storing generated annotations (tilemask) on images.
+| The second use case of moth is storing generated annotations (tilemask) in QuPath projects.
 
 Open a project to work on it
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -58,19 +58,19 @@ Open a project to work on it
 .. code-block:: python3
 
     >>> # example: open in read/write mode
-    >>> from mothi.projects import QuPathTilingProject
+    >>> from moth import QuPathTilingProject
     >>> qp_project = QuPathTilingProject('/path/to/project', mode='r+')
 
 .. code-block:: python3
 
     >>> # create new project
-    >>> from mothi.projects import QuPathTilingProject
+    >>> from moth import QuPathTilingProject
     >>> qp_project = QuPathTilingProject('/path/to/project', mode='x')
 
 Save tilemask
 ~~~~~~~~~~~~~
 | The `tilemask` you want to save can now be saved by calling the method
-  :meth:`mothi.projects.QuPathTilingProject.save_mask_annotations`
+  :meth:`moth.projects.QuPathTilingProject.save_mask_annotations`
 
 .. code-block:: python3
 
@@ -78,17 +78,17 @@ Save tilemask
 
 | The example will save the generated `tilemask` in the first image 
   starting at (50|50).
-| Learn more about the parameters of the function by taking a look at the :ref:`api`.
+| Learn more about the parameters of the function by looking at the :ref:`api`.
 
 Merge annotation
 ~~~~~~~~~~~~~~~~
 | After importing multiple tile annotations, you can merge nearby annotations of the same classes.
   This can be done with the help of the method
-  :meth:`mothi.projects.QuPathTilingProject.merge_near_annotations`.
+  :meth:`moth.projects.QuPathTilingProject.merge_near_annotations`.
 
 .. code-block:: python3
 
     >>> qp_project.merge_near_annotations(img_id=0, max_dist=0)
 
-| This will merge all neighboring annotations that have the same class and no spacing
+| This will merge all neighboring annotations with the same class and no spacing
   in the first image.
