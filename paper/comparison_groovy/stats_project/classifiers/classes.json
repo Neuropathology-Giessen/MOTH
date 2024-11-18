@@ -1,0 +1,11 @@
+{
+  "pathClasses": [
+    {
+      "name": "Unclassified"
+    },
+    {
+      "name": "Tumor",
+      "color": -3670016
+    }
+  ]
+}
